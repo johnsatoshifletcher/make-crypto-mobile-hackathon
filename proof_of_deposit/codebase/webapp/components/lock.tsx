@@ -36,6 +36,7 @@ export function LockToken({
   const [lockAmount, setLockAmount] = useState('');
   const [state, setState] = useState(States.None);
 
+  const balance = balances[token.ticker];
   const tokenAddress = token.networks[network.name];
 
   const locked_erc20 = LockedERC20[token.ticker];
@@ -131,11 +132,11 @@ export function LockToken({
           <PanelDescription>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               You currently have{' '}
-              <Bold>{formatAmount(balances[token.ticker].balance)}</Bold> available,{' '}
-              <Bold>{formatAmount(balances[token.ticker].total_locked)}</Bold> locked out of which{' '}
-              <Bold>{formatAmount(balances[token.ticker].total_locked.minus(balances[token.ticker].nonvoting_locked))}</Bold> is voting, and{' '}
-              <Bold>{formatAmount(balances[token.ticker].unlocking)}</Bold> unlocking out of which{' '}
-              <Bold>{formatAmount(balances[token.ticker].withdrawable)}</Bold> is ready to withdraw.
+              <Bold>{formatAmount(balance.balance)}</Bold> available,{' '}
+              <Bold>{formatAmount(balance.total_locked)}</Bold> locked out of which{' '}
+              <Bold>{formatAmount(balance.total_locked.minus(balance.nonvoting_locked))}</Bold> is voting, and{' '}
+              <Bold>{formatAmount(balance.unlocking)}</Bold> unlocking out of which{' '}
+              <Bold>{formatAmount(balance.withdrawable)}</Bold> is ready to withdraw.
             </p>
           </PanelDescription>
           <div>
