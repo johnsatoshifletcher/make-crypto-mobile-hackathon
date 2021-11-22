@@ -1,10 +1,28 @@
 import { NetworkNames } from '@celo-tools/use-contractkit';
+import LockedCGLD from '../utils/abis/LockedCGLD.json';
+import LockedCUSD from '../utils/abis/LockedCUSD.json';
+import LockedCEUR from '../utils/abis/LockedCEUR.json';
 
 export enum TokenTicker {
   CELO = 'CELO',
   cUSD = 'cUSD',
   cEUR = 'cEUR',
 }
+
+export const LockedERC20 = {
+  [TokenTicker.CELO]: {
+    contract: LockedCGLD,
+    address: '0xD6807790ff21f007eF95A1924cDc6A082085463C'
+  },
+  [TokenTicker.cUSD]: {
+    contract: LockedCUSD,
+    address: '0x7A2201c20628f0FFf09Ce213b169387d499A2FF3'
+  },
+  [TokenTicker.cEUR]: {
+    contract: LockedCEUR,
+    address: '0x88D25ebc83cDC1D76b955A9aDec976E92e4f1b2B'
+  },
+};
 
 export interface Token {
   ticker: TokenTicker;

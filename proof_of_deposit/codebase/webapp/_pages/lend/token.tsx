@@ -359,7 +359,7 @@ export function LendToken() {
             <TokenInput
               value={depositAmount}
               onChange={(e) => setDepositAmount(e)}
-              max={balances[token.ticker].toString()}
+              max={balances[token.ticker].balance.toString()}
               token={token}
             />
             <div className="flex justify-around items-center">
@@ -415,7 +415,7 @@ export function LendToken() {
               <TokenInput
                 value={borrowAmount}
                 onChange={(e) => setBorrowAmount(e)}
-                max={balances[token.ticker].toString()}
+                max={balances[token.ticker].balance.toString()}
                 token={token}
               />
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">

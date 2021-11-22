@@ -34,7 +34,9 @@ export function Swap() {
   const [quoteError, setQuoteError] = useState('');
 
   const handleSwap = async () => {
+    console.log("here", amounts);
     const amount = Web3.utils.toWei(amounts.from);
+    console.log("here2", {a: amount});
     track('swap/swap', {
       from: fromToken.ticker,
       to: toToken.ticker,
@@ -147,7 +149,7 @@ export function Swap() {
               }}
               token={fromToken}
               onTokenChange={(t) => setFromToken(t)}
-              max={balances[fromToken.ticker].toString()}
+              max={balances[fromToken.ticker].balance.toString()}
             />
 
             <div className="text-gray-900 dark:text-gray-200">to</div>

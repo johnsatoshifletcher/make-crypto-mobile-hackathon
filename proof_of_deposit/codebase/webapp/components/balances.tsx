@@ -13,9 +13,9 @@ export function Balances() {
 
   const sortFn = useCallback(
     (a, b) => {
-      if (sort.property === 'balance') {
-        const balanceA = balances[a];
-        const balanceB = balances[b];
+      if (sort.property != 'name') {
+        const balanceA = balances[a][sort.property];
+        const balanceB = balances[b][sort.property];
 
         if (sort.desc) {
           return balanceB.minus(balanceA).toNumber();
@@ -42,7 +42,8 @@ export function Balances() {
           headers={[
             { displayName: 'Token', sortableProperty: 'name' },
             { displayName: 'Balance', sortableProperty: 'balance' },
-            { displayName: 'Value', sortableProperty: 'value' },
+            { displayName: 'Locked', sortableProperty: 'total_locked' },
+            { displayName: 'Unlocking', sortableProperty: 'unlocking' },
           ]}
           onHeaderClick={(property, desc) => {
             setSort({ property, desc });
@@ -68,8 +69,9 @@ export function Balances() {
                     <div className="text-xs ">{token.name}</div>
                   </div>
                 </div>,
-                <span className={''}>{formatAmount(balances[ticker])}</span>,
-                <span className={''}>Coming soon...</span>,
+                <span className={''}>{formatAmount(balances[ticker].balance)}</span>,
+                <span className={''}>{formatAmount(balances[ticker].total_locked)}</span>,
+                <span className={''}>{formatAmount(balances[ticker].unlocking)}</span>,
               ];
             })}
         />

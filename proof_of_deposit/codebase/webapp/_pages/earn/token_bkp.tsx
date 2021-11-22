@@ -4,6 +4,7 @@ import { GroupVote } from '@celo/contractkit/lib/wrappers/Election';
 import { ValidatorGroup } from '@celo/contractkit/lib/wrappers/Validators';
 import { BigNumber } from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import Loader from 'react-loader-spinner';
 import Web3 from 'web3';
 import {
@@ -18,10 +19,10 @@ import {
   Table,
   toast,
   TokenInput,
-} from '../components';
-import { Celo } from '../constants';
-import { Base } from '../state';
-import { formatAmount, truncate, truncateAddress } from '../utils';
+} from '../../components';
+import { Celo, tokens } from '../../constants';
+import { Base } from '../../state';
+import { formatAmount, truncate, truncateAddress } from '../../utils';
 
 enum States {
   None,
@@ -57,7 +58,13 @@ export async function getValidatorGroupScore(
   return { score, electedCount };
 }
 
-export function Earn() {
+export function EarnToken() {
+  const { token: tokenTicker } = useParams();
+  const token = tokens.find(
+    (t) =>
+      t.ticker.toLowerCase() === ((tokenTicker as string) || '').toLowerCase()
+  );
+
   const { kit, performActions, address } = useContractKit();
   const {
     lockedSummary,
@@ -253,8 +260,8 @@ export function Earn() {
   }, [fetchValidators]);
 
   const voting = lockedSummary.total.minus(lockedSummary.nonVoting);
-  const total = lockedSummary.total.plus(balances.CELO);
-  const nonLocked = balances.CELO;
+  const total = lockedSummary.total.plus(balances.CELO.balance);
+  const nonLocked = balances.CELO.balance;
 
   const votingPct = voting.dividedBy(total).times(100);
   const nonvotingPct = lockedSummary.nonVoting

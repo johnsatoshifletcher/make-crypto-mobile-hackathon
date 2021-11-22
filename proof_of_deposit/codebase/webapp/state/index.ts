@@ -8,7 +8,7 @@ import { totalmem } from 'node:os';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { createContainer } from 'unstated-next';
-import { FiatCurrency, tokens } from '../constants';
+import { FiatCurrency, tokens, LockedERC20 } from '../constants';
 import ERC20 from '../utils/abis/ERC20.json';
 
 function getApolloClient(n: Network) {
@@ -47,7 +47,13 @@ const defaultAccountSummary = {
 const defaultBalances = tokens.reduce(
   (accum, cur) => ({
     ...accum,
-    [cur.ticker]: new BigNumber(0),
+    [cur.ticker]: {
+      balance: new BigNumber(0),
+      total_locked: new BigNumber(0),
+      nonvoting_locked: new BigNumber(0),
+      unlocking: new BigNumber(0),
+      withdrawable: new BigNumber(0),
+    }
   }),
   {}
 );
@@ -87,7 +93,13 @@ function State() {
     total: BigNumber;
   }>(defaultLockedSummary);
   const [balances, setBalances] = useState<{
-    [x: string]: BigNumber;
+    [x: string]: {
+      balance: BigNumber;
+      total_locked: BigNumber;
+      nonvoting_locked: BigNumber;
+      unlocking: BigNumber;
+      withdrawable: BigNumber;
+    }
   }>(defaultBalances);
   const [fetchingBalances, setFetchingBalances] = useState(false);
 
@@ -121,10 +133,44 @@ function State() {
               );
               balance = await erc20.methods.balanceOf(address).call();
             }
+            
+            const locked_erc20 = new kit.web3.eth.Contract(
+                LockedERC20[t.ticker].contract.abi as any,
+                LockedERC20[t.ticker].address
+            );
+
+            let total_locked = await locked_erc20.methods.getAccountTotalLockedToken(address).call();
+            let nonvoting_locked = await locked_erc20.methods.getAccountNonvotingLockedToken(address).call();
+            let pendingWithdrawals = await locked_erc20.methods.getPendingWithdrawals(address).call();
+            let withdrawals = pendingWithdrawals[0]
+              .reduce(
+              (totals, value, i) => {
+                value = new BigNumber(value);
+                const time = new BigNumber(pendingWithdrawals[1][i]);
+                const available = new Date(time.toNumber() * 1000);
+        
+                if (available.getTime() < Date.now()) {
+                  return {
+                    unlocking: totals.unlocking.plus(value),
+                    withdrawable: totals.withdrawable.plus(value),
+                  };
+                }
+        
+                return {
+                  ...totals,
+                  unlocking: totals.unlocking.plus(value),
+                };
+              },
+              { withdrawable: new BigNumber(0), unlocking: new BigNumber(0) }
+            );
 
             return {
               ...t,
               balance,
+              total_locked,
+              nonvoting_locked,
+              unlocking: withdrawals.unlocking,
+              withdrawable: withdrawals.withdrawable
             };
           })
       );
@@ -132,7 +178,13 @@ function State() {
       const balances = erc20s.reduce((accum, t) => {
         return {
           ...accum,
-          [t.ticker]: new BigNumber(t.balance),
+          [t.ticker]: {
+            balance: new BigNumber(t.balance),
+            total_locked: new BigNumber(t.total_locked),
+            nonvoting_locked: new BigNumber(t.nonvoting_locked),
+            unlocking: new BigNumber(t.unlocking),
+            withdrawable: new BigNumber(t.withdrawable),
+          }
         };
       }, {});
 

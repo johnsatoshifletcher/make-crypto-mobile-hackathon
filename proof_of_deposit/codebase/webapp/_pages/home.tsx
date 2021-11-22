@@ -24,16 +24,10 @@ export function Dashboard() {
       <Panel>
         <div className="flex justify-between space-x-3">
           <div>
-            <PanelHeader>Welcome to Plock.fi</PanelHeader>
+            <PanelHeader>Cambridge Cryptographic's Hackathon Submission</PanelHeader>
             <PanelDescription>
-              Plock.fi is your home for everything DeFi on Celo.
+              asd
             </PanelDescription>
-          </div>
-          <div className="">
-            <div className="text-lg text-gray-500 font-light whitespace-nowrap">
-              Net Worth
-            </div>
-            <div className="text-3xl">$0.00</div>
           </div>
         </div>
 
@@ -65,8 +59,6 @@ export function Dashboard() {
           </p>
         </div>
       </Panel>
-
-      <Balances />
     </>
   );
 }

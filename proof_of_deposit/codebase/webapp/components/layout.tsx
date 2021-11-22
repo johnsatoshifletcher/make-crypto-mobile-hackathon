@@ -84,69 +84,69 @@ const tabs: SidebarOption[] = [
     link: '/',
     strict: true,
   },
+  // {
+  //   name: 'Transfer',
+  //   icon: (
+  //     <svg
+  //       className="h-4"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       fill="none"
+  //       viewBox="0 0 24 24"
+  //       stroke="currentColor"
+  //     >
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+  //       />
+  //     </svg>
+  //   ),
+  //   link: '/transfer',
+  // },
+  // {
+  //   name: 'Exchange',
+  //   icon: (
+  //     <svg
+  //       className="h-4"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       fill="none"
+  //       viewBox="0 0 24 24"
+  //       stroke="currentColor"
+  //     >
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M13 10V3L4 14h7v7l9-11h-7z"
+  //       />
+  //     </svg>
+  //   ),
+  //   link: '/swap',
+  // },
+  // {
+  //   name: 'Lend',
+  //   icon: (
+  //     <svg
+  //       className="h-4"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       fill="none"
+  //       viewBox="0 0 24 24"
+  //       stroke="currentColor"
+  //     >
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+  //       />
+  //     </svg>
+  //   ),
+  //   link: '/lend',
+  //   badge: 'BETA',
+  // },
   {
-    name: 'Transfer',
-    icon: (
-      <svg
-        className="h-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-    ),
-    link: '/transfer',
-  },
-  {
-    name: 'Exchange',
-    icon: (
-      <svg
-        className="h-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M13 10V3L4 14h7v7l9-11h-7z"
-        />
-      </svg>
-    ),
-    link: '/swap',
-  },
-  {
-    name: 'Lend',
-    icon: (
-      <svg
-        className="h-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-        />
-      </svg>
-    ),
-    link: '/lend',
-    badge: 'BETA',
-  },
-  {
-    name: 'Staking',
+    name: 'Proof-of-Deposit',
     icon: (
       <svg
         className="h-4"
@@ -165,53 +165,53 @@ const tabs: SidebarOption[] = [
     ),
     link: '/earn',
   },
-  {
-    name: 'Governance',
-    icon: (
-      <svg
-        className="h-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-        />
-      </svg>
-    ),
-    link: '/vote',
-  },
-  {
-    name: 'Stream',
-    icon: (
-      <svg
-        className="h-4"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
-        />
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
-        />
-      </svg>
-    ),
-    link: '/stream',
-    badge: 'BETA',
-  },
+  // {
+  //   name: 'Governance',
+  //   icon: (
+  //     <svg
+  //       className="h-4"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       fill="none"
+  //       viewBox="0 0 24 24"
+  //       stroke="currentColor"
+  //     >
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+  //       />
+  //     </svg>
+  //   ),
+  //   link: '/vote',
+  // },
+  // {
+  //   name: 'Stream',
+  //   icon: (
+  //     <svg
+  //       className="h-4"
+  //       xmlns="http://www.w3.org/2000/svg"
+  //       fill="none"
+  //       viewBox="0 0 24 24"
+  //       stroke="currentColor"
+  //     >
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"
+  //       />
+  //       <path
+  //         strokeLinecap="round"
+  //         strokeLinejoin="round"
+  //         strokeWidth={2}
+  //         d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"
+  //       />
+  //     </svg>
+  //   ),
+  //   link: '/stream',
+  //   badge: 'BETA',
+  // },
   {
     name: 'Settings',
     icon: (
@@ -536,8 +536,8 @@ function WithSidebar({ children }: any) {
 
 export const WithLayout = ({ children }: any) => (
   <ContractKitProvider
-    dappName="Plock"
-    dappDescription="The DeFi dashboard for Celo"
+    dappName="Proof-of-Deposit"
+    dappDescription="Cambrideg Cryptographic's Hackathon Submission"
     dappUrl="https://plock.fi"
     networks={[Alfajores]}
   >

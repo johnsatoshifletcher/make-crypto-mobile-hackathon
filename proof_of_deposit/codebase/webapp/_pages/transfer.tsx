@@ -113,7 +113,7 @@ export function Transfer() {
                   onChange={(e) => setAmount(e)}
                   token={currency}
                   onTokenChange={(token) => setCurrency(token)}
-                  max={balances[currency.ticker].toString()}
+                  max={balances[currency.ticker].balance.toString()}
                 />
               </div>
 

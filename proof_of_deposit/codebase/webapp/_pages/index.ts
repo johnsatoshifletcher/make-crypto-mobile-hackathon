@@ -4,6 +4,7 @@ export * from './swap';
 export * from './transfer';
 export * from './vote';
 export * from './earn';
+export * from './earn/token';
 export * from './lend';
 export * from './lend/token';
 export * from './home';

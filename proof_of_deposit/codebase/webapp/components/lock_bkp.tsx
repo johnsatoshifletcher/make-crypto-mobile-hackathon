@@ -2,15 +2,13 @@ import { useContractKit } from '@celo-tools/use-contractkit';
 import { useState } from 'react';
 import Loader from 'react-loader-spinner';
 import { toast } from '../components';
-import { LockedERC20, Token } from '../constants';
+import { Celo } from '../constants';
 import { Base } from '../state';
 import { formatAmount, toWei, truncateAddress } from '../utils';
 import { ensureAccount } from '../utils/ensure-account';
 import { TokenInput } from './input';
 import { Panel, PanelDescription, PanelGrid, PanelHeader } from './panel';
 import { Bold, Link } from './text';
-import ERC20 from '../utils/abis/ERC20.json';
-import BigNumber from 'bignumber.js';
 
 enum States {
   None,
@@ -21,24 +19,16 @@ enum States {
   Withdrawing,
 }
 
-export function LockToken({
-  token
-}: {
-  token: Token;
-}) {
-  const { network, address, performActions } = useContractKit();
+export function LockCelo() {
+  const { address, performActions } = useContractKit();
   const {
     lockedSummary,
     balances,
     track,
-    fetchBalances,
+    fetchLockedSummary,
   } = Base.useContainer();
   const [lockAmount, setLockAmount] = useState('');
   const [state, setState] = useState(States.None);
-
-  const tokenAddress = token.networks[network.name];
-
-  const locked_erc20 = LockedERC20[token.ticker];
 
   const lock = async () => {
     track('lock/lock', { amount: toWei(lockAmount) });
@@ -46,23 +36,15 @@ export function LockToken({
 
     try {
       await performActions(async (k) => {
-        const erc20 = new k.web3.eth.Contract(
-          ERC20 as any,
-          tokenAddress
-        );
-        let txObject;
-        txObject = await erc20.methods.approve(locked_erc20.address, toWei(lockAmount));
-        await k.sendTransactionObject(txObject, { from: address });
-
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        txObject = await contract.methods.lock(toWei(lockAmount));
-        await k.sendTransactionObject(txObject, { from: address });
+        await ensureAccount(k, k.defaultAccount);
+        const lockedCelo = await k.contracts.getLockedGold();
+        return lockedCelo.lock().sendAndWaitForReceipt({
+          value: toWei(lockAmount),
+          from: k.defaultAccount,
+        });
       });
-      await fetchBalances();
-      toast.success(`${token.ticker} locked`);
+      fetchLockedSummary();
+      toast.success('CELO locked');
       setLockAmount('');
     } catch (e) {
       toast.error(e.message);
@@ -76,16 +58,13 @@ export function LockToken({
     setState(States.Unlocking);
     try {
       await performActions(async (k) => {
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        let txObject;
-        txObject = await contract.methods.unlock(toWei(lockAmount));
-        await k.sendTransactionObject(txObject, { from: address });
+        const lockedCelo = await k.contracts.getLockedGold();
+        await lockedCelo
+          .unlock(toWei(lockAmount))
+          .sendAndWaitForReceipt({ from: k.defaultAccount });
       });
-      await fetchBalances();
-      toast.success(`${token.ticker} unlocked`);
+      fetchLockedSummary();
+      toast.success('CELO unlocked');
       setLockAmount('');
     } catch (e) {
       toast.error(e.message);
@@ -99,43 +78,66 @@ export function LockToken({
     setState(States.Withdrawing);
     try {
       await performActions(async (k) => {
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        
+        const locked = await k.contracts.getLockedGold();
         const currentTime = Math.round(new Date().getTime() / 1000);
-        const pendingWithdrawals = await contract.methods.getPendingWithdrawals(address).call();
-        for (let i = pendingWithdrawals[0].length - 1; i >= 0; i--) {
-          let time = new BigNumber(pendingWithdrawals[1][i]);
-          if (time.isLessThan(currentTime)) {
-            let txObject = await contract.methods.withdraw(i);
-            await k.sendTransactionObject(txObject, { from: address });
+        while (true) {
+          let madeWithdrawal = false;
+          const pendingWithdrawals = await locked.getPendingWithdrawals(
+            address
+          );
+          for (let i = 0; i < pendingWithdrawals.length; i++) {
+            const pendingWithdrawal = pendingWithdrawals[i];
+            if (pendingWithdrawal.time.isLessThan(currentTime)) {
+              await locked
+                .withdraw(i)
+                .sendAndWaitForReceipt({ from: k.defaultAccount });
+              madeWithdrawal = true;
+              break;
+            }
+          }
+          if (!madeWithdrawal) {
+            break;
           }
         }
       });
-      await fetchBalances();
-      toast.success(`${token.ticker} withdrawn`);
+      fetchLockedSummary();
+      toast.success('CELO withdrawn');
     } catch (e) {
       toast.error(e.message);
     }
     setState(States.None);
   };
 
+  const total = lockedSummary.total.plus(balances.CELO.balance);
+  const lockedPct = lockedSummary.total.dividedBy(total).times(100).toFixed(2);
+
   return (
     <Panel>
       <PanelGrid>
-        <PanelHeader>Lock {token.ticker}</PanelHeader>
+        <PanelHeader>Lock CELO</PanelHeader>
 
         <div className="flex flex-col space-y-4">
           <PanelDescription>
+            <p>
+              When locking CELO it's important to note that there are a few
+              states your CELO can be in, not locked, locked, unlocking and
+              withdrawable. For a deep dive into each of these states, checkout
+              the{' '}
+              <Link link="https://docs.celo.org/celo-codebase/protocol/proof-of-stake/locked-gold">
+                Locked Celo documentation
+              </Link>
+              .
+            </p>
+
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              You currently have{' '}
-              <Bold>{formatAmount(balances[token.ticker].balance)}</Bold> available,{' '}
-              <Bold>{formatAmount(balances[token.ticker].total_locked)}</Bold> locked out of which{' '}
-              <Bold>{formatAmount(balances[token.ticker].total_locked.minus(balances[token.ticker].nonvoting_locked))}</Bold> is voting, and{' '}
-              <Bold>{formatAmount(balances[token.ticker].unlocking)}</Bold> unlocking out of which{' '}
-              <Bold>{formatAmount(balances[token.ticker].withdrawable)}</Bold> is ready to withdraw.
+              {truncateAddress(address || '0x')} currently has{' '}
+              <Bold>{formatAmount(lockedSummary.total)}</Bold> out of{' '}
+              <Bold>{formatAmount(total)}</Bold> ({parseFloat(lockedPct) || 0}%)
+              CELO locked for voting.{' '}
+              <Bold>{formatAmount(lockedSummary.unlocking)}</Bold> CELO is
+              currently unlocking and{' '}
+              <Bold>{formatAmount(lockedSummary.withdrawable)}</Bold> CELO is
+              withdrawable.
             </p>
           </PanelDescription>
           <div>
@@ -144,7 +146,7 @@ export function LockToken({
                 <TokenInput
                   value={lockAmount}
                   onChange={(e) => setLockAmount(e)}
-                  token={token}
+                  token={Celo}
                 />
               </div>
               {state === States.Locking || state === States.Unlocking ? (
@@ -167,13 +169,13 @@ export function LockToken({
                 </div>
               )}
 
-              {balance.withdrawable.gt(0) && (
+              {lockedSummary.withdrawable.gt(0) && (
                 <div className="flex">
                   <button
                     className="secondary-button ml-auto"
                     onClick={withdraw}
                   >
-                    Withdraw Locked {token.ticker}
+                    Withdraw Locked CELO
                   </button>
                 </div>
               )}

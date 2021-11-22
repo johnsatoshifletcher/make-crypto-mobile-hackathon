@@ -3,6 +3,7 @@ import { Address } from '@celo/utils/lib/address';
 import { ubeswap } from '../constants';
 import ERC20Abi from './abis/ERC20.json';
 import RouterAbi from './abis/uniswap/Router.json';
+import BigNumber from 'bignumber.js';
 
 export async function quote(
   kit: ContractKit,
@@ -28,12 +29,18 @@ export async function swap(
   toTokenAddress: Address,
   amount: string
 ) {
+  console.log("here3", {
+    address,
+    fromTokenAddress,
+    toTokenAddress,
+    amount
+  });
   const fromToken = new kit.web3.eth.Contract(
     ERC20Abi as any,
     fromTokenAddress
   );
   await fromToken.methods
-    .increaseAllowance(ubeswap.routerAddress, amount)
+    .approve(ubeswap.routerAddress, BigInt(amount))
     .send({ from: address });
 
   const router = new kit.web3.eth.Contract(
