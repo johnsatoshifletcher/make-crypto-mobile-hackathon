@@ -12,7 +12,7 @@ import {
   toast
 } from '../../components';
 import Web3 from 'web3';
-import { tokens, LockedERC20 } from '../../constants';
+import { tokens, Celo, LockedERC20 } from '../../constants';
 import { Base } from '../../state';
 import { formatAmount, Election, electionAddress } from '../../utils';
 import ERC20 from '../../utils/abis/ERC20.json';
@@ -49,18 +49,15 @@ export function Earn() {
     setState(States.Distributing);
     try {
       await performActions(async (k) => {   
-        let txObjects = await Promise.all(
-          tokens.map((t, i) => {
-            const erc20 = new k.web3.eth.Contract(
-              ERC20 as any,
-              tokens[i].networks[network.name]
-            );
-
-            return erc20.methods.approve(electionAddress, Web3.utils.toWei("1000"));
-        }));
-        await Promise.all(
-          txObjects.map(tx => k.sendTransactionObject(tx, { from: address }))
+        const cgld = new k.web3.eth.Contract(
+          ERC20 as any,
+          Celo.networks[network.name]
         );
+
+        await k.sendTransactionObject(
+          await cgld.methods.approve(electionAddress, Web3.utils.toWei("1000")),
+          { from: address }
+        );          
 
         const election = new Election(k, "0x0", address);
         await election.distributeEpochRewards(new BigNumber(Web3.utils.toWei("1")));

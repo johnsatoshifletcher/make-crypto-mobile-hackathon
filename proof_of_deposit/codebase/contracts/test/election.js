@@ -59,12 +59,17 @@ async function test(){
     //     .call();
     // console.log(Web3.utils.fromWei(result));
 
-    console.log(Web3.utils.fromWei(
-        await Election_inst.methods.getEpochTokenRewards(
-            LockedCUSD.networks[networkId].address,
-            Web3.utils.toWei("1")
-        ).call()
-    ));
+    console.log("increasing allowance");
+    await sendTx(account, await CGLD_inst.methods.approve(Election_inst._address, Web3.utils.toWei("1")));
+    console.log("distributing");
+    await sendTx(account, await Election_inst.methods.distributeEpochRewards(Web3.utils.toWei("1")));
+
+    // console.log(Web3.utils.fromWei(
+    //     await Election_inst.methods.getEpochTokenRewards(
+    //         LockedCUSD.networks[networkId].address,
+    //         Web3.utils.toWei("1")
+    //     ).call()
+    // ));
 
     // let cGLDBalance = await CGLD_inst.methods.balanceOf(account.address).call();
     // let cUSDBalance = await CUSD_inst.methods.balanceOf(account.address).call();

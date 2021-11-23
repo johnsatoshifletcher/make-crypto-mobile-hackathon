@@ -620,7 +620,15 @@ contract Election is IElection, ReentrancyGuard
     for (uint256 i = 0; i < lockable.addresses.length; i = i.add(1)) {
         address token = lockable.addresses[i];
 
-        uint256 tokenAmount = getEpochTokenRewards(token, amount);
+        FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
+            lockable.weight[token],
+            lockable.total_weight
+        );
+        uint256 tokenAmount = FixidityLib
+            .newFixed(amount)
+            .multiply(tokenWeight)
+            .fromFixed();
+            
         _distributeEpochTokenRewards(token, tokenAmount);
     }
 
@@ -636,8 +644,24 @@ contract Election is IElection, ReentrancyGuard
     address erc20Address = lockable.instance[token].getERC20Address();
     IERC20 erc20 = IERC20(erc20Address);
     
-    require(amount <= erc20.allowance(msg.sender, address(this)), "insufficient allowance");
-    erc20.transferFrom(msg.sender, token, amount); // move the amount to the locked smart contract
+    require(amount <= cgld.allowance(msg.sender, address(this)), "insufficient allowance");
+    cgld.transferFrom(msg.sender, address(this), amount); // move the amount to the locked smart contract
+    if (erc20Address != cgldAddress)
+    {
+        address[] memory paths = new address[](2);
+        paths[0] = cgldAddress;
+        paths[1] = erc20Address;
+
+        cgld.approve(swapAddress, amount);
+        amount = swap.swapExactTokensForTokens(
+            amount,
+            1,
+            paths,
+            address(this),
+            block.timestamp.add(10000000)
+        )[1];
+    }
+    erc20.transfer(token, amount); // move the amount to the locked smart contract
     
     // update groups voting power
     address[] memory sortedGroups = votes.total[token].eligible.getKeys();
