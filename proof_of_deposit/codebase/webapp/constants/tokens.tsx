@@ -12,15 +12,15 @@ export enum TokenTicker {
 export const LockedERC20 = {
   [TokenTicker.CELO]: {
     contract: LockedCGLD,
-    address: '0xD6807790ff21f007eF95A1924cDc6A082085463C'
+    address: '0xBF6FA7D5f12CA97ad28597B98DD17E17071578c3'
   },
   [TokenTicker.cUSD]: {
     contract: LockedCUSD,
-    address: '0x7A2201c20628f0FFf09Ce213b169387d499A2FF3'
+    address: '0xA227e51477819001C6871e5F60ecc8E0311E3596'
   },
   [TokenTicker.cEUR]: {
     contract: LockedCEUR,
-    address: '0x88D25ebc83cDC1D76b955A9aDec976E92e4f1b2B'
+    address: '0xdc056904fa87De51dd11503410a9E6804881fED0'
   },
 };
 
