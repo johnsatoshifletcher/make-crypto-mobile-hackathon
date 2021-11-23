@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./interfaces/ILockedToken.sol";
+import "./interfaces/IElection.sol";
 
 
 abstract contract LockedToken is ILockedToken, ReentrancyGuard
@@ -36,6 +37,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     uint256 public totalNonvoting;
     uint256 public unlockingPeriod;
     IERC20 public token; 
+    IElection private election;
 
     event UnlockingPeriodSet(uint256 period);
     event TokenLocked(address indexed account, uint256 value);
@@ -51,6 +53,13 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
         token = IERC20(tokenAddress);
         unlockingPeriod = _unlockingPeriod;
         emit UnlockingPeriodSet(_unlockingPeriod);
+    }
+
+    /**
+    * @notice Set address of election smart contract.
+    */
+    function setElection(address election_address) public {
+        election = IElection(election_address);
     }
 
     /**
@@ -176,8 +185,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     * @return The total amount of locked token in the system.
     */
     function getTotalLockedToken() external view returns (uint256) {
-        // return totalNonvoting.add(getElection().getTotalVotes()); TODO
-        return 0;
+        return totalNonvoting.add(election.getTotalVotes(address(this)));
     }
 
     /**
@@ -195,8 +203,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     */
     function getAccountTotalLockedToken(address account) public view returns (uint256) {
         uint256 total = balances[account].nonvoting;
-        return total;
-        // return total.add(getElection().getTotalVotesByAccount(account)); TODO
+        return total.add(election.getTotalVotesByAccount(address(this), account));
     }
 
     /**
