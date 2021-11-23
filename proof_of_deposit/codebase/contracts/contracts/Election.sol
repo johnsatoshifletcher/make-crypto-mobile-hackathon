@@ -3,14 +3,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./linkedlists/AddressSortedLinkedList.sol";
+import "./utils/AddressSortedLinkedList.sol";
+import "./utils/FixidityLib.sol";
 import "./interfaces/ILockedToken.sol";
 import "./interfaces/IElection.sol";
+import "./interfaces/IUniswapV2Router01.sol";
 
 contract Election is IElection, ReentrancyGuard
 {
   using AddressSortedLinkedList for SortedLinkedList.List;
+  using FixidityLib for FixidityLib.Fraction;
   using SafeMath for uint256;
 
   // 1e20 ensures that units can be represented as precisely as possible to avoid rounding errors
@@ -76,12 +80,21 @@ contract Election is IElection, ReentrancyGuard
   }
 
   struct Lockable {
+    address[] addresses;
     mapping(address => bool) valid;
     mapping(address => ILockedToken) instance;
+    mapping(address => uint256) weight;
+    uint256 total_weight;
   }
 
   uint256 private epochNumber;
   Lockable private lockable; 
+  address private swapAddress;
+  IUniswapV2Router01 private swap;
+  address private cgldAddress;
+  IERC20 private cgld;
+
+
   Votes private votes;
   // Governs how many validator groups a single account can vote for.
   uint256 public maxNumGroupsVotedFor;
@@ -107,32 +120,42 @@ contract Election is IElection, ReentrancyGuard
     uint256 value,
     uint256 units
   );
+  event EpochRewardsDistributedToVoters(address indexed token, address indexed group, uint256 value);
 
   /**
    * @notice Sets initialized == true on implementation contracts
    */
-  constructor(address[] memory tokens, address[] memory groups, uint256[][] memory _votes, uint256[][] memory order, uint _maxNumGroupsVotedFor) 
+  constructor(address[] memory tokens, uint256[] memory weights, address[] memory groups, uint256[][] memory _votes, uint256[][] memory order, uint _maxNumGroupsVotedFor, address _swapAddress, address _cgldAddress) 
   {
+    require(tokens.length == weights.length, "weights dim should be same as tokens");
     require(tokens.length == _votes.length, "Votes 1st dim should be same as tokens");
     require(tokens.length == order.length, "Order 2nd dim should be same as tokens");
     for (uint256 i = 0; i < tokens.length; i = i.add(1)) {
         address token = tokens[i];
         lockable.valid[token] = true;
         lockable.instance[token] = ILockedToken(token);
+        lockable.addresses.push(token);
+        lockable.weight[token] = weights[i];
+        lockable.total_weight = lockable.total_weight.add(weights[i]);
         
         require(groups.length == _votes[i].length, "Votes 2nd dim should be same as groups");
         require(groups.length == order[i].length, "Order 2nd dim should be same as groups");
         for (uint256 j = 0; j < groups.length; j = j.add(1)) {
             address group = groups[order[i][j]];
-            incrementActiveVotes(token, group, address(this), _votes[i][j]);
+            uint256 v = _votes[i][order[i][j]];
+            incrementActiveVotes(token, group, address(this), v);
             if (j == 0) {
-                votes.total[token].eligible.insert(group, _votes[i][j], address(0), address(0));
+                votes.total[token].eligible.insert(group, v, address(0), address(0));
             }else{
-                votes.total[token].eligible.insert(group, _votes[i][j], groups[order[i][j.sub(1)]], address(0));
+                votes.total[token].eligible.insert(group, v, groups[order[i][j.sub(1)]], address(0));
             }
         }
     }
     maxNumGroupsVotedFor = _maxNumGroupsVotedFor;
+    swapAddress = _swapAddress;
+    swap = IUniswapV2Router01(_swapAddress);
+    cgldAddress = _cgldAddress;
+    cgld = IERC20(_cgldAddress);
   }
 
   /**
@@ -384,6 +407,13 @@ contract Election is IElection, ReentrancyGuard
   }
 
   /**
+  * @notice Gets address of the Swap smart contract.
+  */
+  function getSwapAddress() external view returns (address) {
+    return swapAddress;
+  }
+
+  /**
    * @notice Returns the total number of votes cast by an account.
    * @param token The address of the locked token contract.
    * @param account The address of the account.
@@ -510,40 +540,149 @@ contract Election is IElection, ReentrancyGuard
     return votes.total[token].eligible.contains(group);
   }
 
-//   /**
-//    * @notice Distributes epoch rewards to voters for `group` in the form of active votes.
-//    * @param group The group whose voters will receive rewards.
-//    * @param value The amount of rewards to distribute to voters for the group.
-//    * @param lesser The group receiving fewer votes than `group` after the rewards are added.
-//    * @param greater The group receiving more votes than `group` after the rewards are added.
-//    * @dev Can only be called directly by the protocol.
-//    */
-//   function distributeEpochRewards(address group, uint256 value, address lesser, address greater)
-//     external
-//     onlyVm
-//   {
-//     _distributeEpochRewards(group, value, lesser, greater);
-//   }
 
-//   /**
-//    * @notice Distributes epoch rewards to voters for `group` in the form of active votes.
-//    * @param group The group whose voters will receive rewards.
-//    * @param value The amount of rewards to distribute to voters for the group.
-//    * @param lesser The group receiving fewer votes than `group` after the rewards are added.
-//    * @param greater The group receiving more votes than `group` after the rewards are added.
-//    */
-//   function _distributeEpochRewards(address group, uint256 value, address lesser, address greater)
-//     internal
-//   {
-//     if (votes.total.eligible.contains(group)) {
-//       uint256 newVoteTotal = votes.total.eligible.getValue(group).add(value);
-//       votes.total.eligible.update(group, newVoteTotal, lesser, greater);
-//     }
+  /**
+   * @notice Returns the amount of token rewards that voters are due at the end of an epoch.
+   * @param token The address of the locked token contract.
+   * @param totalEpochRewards The total amount of CELO going to all voters.
+   * @return The amount of token rewards that voters are due at the end of an epoch.
+   */
+  function getEpochTokenRewards(
+    address token,
+    uint256 totalEpochRewards
+  ) public view returns (uint256) {
+    FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
+      lockable.weight[token],
+      lockable.total_weight
+    );
+    uint256 amount = FixidityLib
+        .newFixed(totalEpochRewards)
+        .multiply(tokenWeight)
+        .fromFixed();
 
-//     votes.active.forGroup[group].total = votes.active.forGroup[group].total.add(value);
-//     votes.active.total = votes.active.total.add(value);
-//     emit EpochRewardsDistributedToVoters(group, value);
-//   }
+    address erc20Address = lockable.instance[token].getERC20Address();
+    if (erc20Address != cgldAddress){
+        address[] memory paths = new address[](2);
+        paths[0] = cgldAddress;
+        paths[1] = erc20Address;
+
+        return swap.getAmountsOut(amount, paths)[1];
+    }else{
+        return amount;
+    }
+  }
+
+  /**
+   * @notice Returns the amount of token rewards that voters for `group` are due at the end of an epoch.
+   * @param token The address of the locked token contract.
+   * @param group The group to calculate epoch rewards for.
+   * @param totalEpochRewards The total amount of CELO going to all voters.
+   * @return The amount of token rewards that voters for `group` are due at the end of an epoch.
+   */
+  function getGroupEpochTokenRewards(
+    address token,
+    address group,
+    uint256 totalEpochRewards
+  ) external view returns (uint256) {
+    FixidityLib.Fraction memory votePortion = FixidityLib.newFixedFraction(
+      votes.active[token].forGroup[group].total,
+      votes.active[token].total
+    );
+    FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
+      lockable.weight[token],
+      lockable.total_weight
+    );
+    uint256 amount = FixidityLib
+        .newFixed(totalEpochRewards)
+        .multiply(votePortion)
+        .multiply(tokenWeight)
+        .fromFixed();
+
+    address erc20Address = lockable.instance[token].getERC20Address();
+    if (erc20Address != cgldAddress){
+        address[] memory paths = new address[](2);
+        paths[0] = cgldAddress;
+        paths[1] = erc20Address;
+
+        return swap.getAmountsOut(amount, paths)[0];
+    }else{
+        return amount;
+    }
+  }
+
+  /**
+   * @notice Distributes epoch rewards to voters and groups in the form of active votes.
+    * @param amount The amount of CELO to distribute as epoch rewards.
+   */
+  function distributeEpochRewards(uint256 amount) external
+  {      
+    // loop through each token and calculate the proportion to be distributed
+    for (uint256 i = 0; i < lockable.addresses.length; i = i.add(1)) {
+        address token = lockable.addresses[i];
+
+        uint256 tokenAmount = getEpochTokenRewards(token, amount);
+        _distributeEpochTokenRewards(token, tokenAmount);
+    }
+
+    epochNumber = epochNumber.add(1);
+  }
+
+  /**
+   * @notice Swaps epoch token rewards before distributing
+   * @param token The address of the locked token contract.
+   * @param amount The amount of CELO to distribute to voters for the group.
+   */
+  function _distributeEpochTokenRewards(address token, uint256 amount) private {
+    address erc20Address = lockable.instance[token].getERC20Address();
+    IERC20 erc20 = IERC20(erc20Address);
+    
+    require(amount <= erc20.allowance(msg.sender, address(this)), "insufficient allowance");
+    erc20.transferFrom(msg.sender, token, amount); // move the amount to the locked smart contract
+    
+    // update groups voting power
+    address[] memory sortedGroups = votes.total[token].eligible.getKeys();
+
+    address greater = address(0);
+    for (uint256 i = 0; i < sortedGroups.length; i = i.add(1)) {
+        address group = sortedGroups[i];
+
+        if(i + 1 < sortedGroups.length){
+            _distributeEpochTokenRewardsToGroup(token, group, amount, sortedGroups[i.add(1)], greater);
+        }else{
+            _distributeEpochTokenRewardsToGroup(token, group, amount, address(0), greater);
+        }
+
+        greater = group;
+    }
+  }
+
+  /**
+   * @notice Distributes epoch token rewards to voters and groups in the form of active votes.
+   * @param token The address of the locked token contract.
+   * @param group The validator group whose vote total should be incremented.
+   * @param amount The amount of token to distribute to voters for the group.
+   * @param lesser The group receiving fewer votes than the group for which the vote was cast,
+   *   or 0 if that group has the fewest votes of any validator group.
+   * @param greater The group receiving more votes than the group for which the vote was cast,
+   *   or 0 if that group has the most votes of any validator group.
+   */
+  function _distributeEpochTokenRewardsToGroup(address token, address group, uint256 amount, address lesser, address greater) private {
+    FixidityLib.Fraction memory votePortion = FixidityLib.newFixedFraction(
+        votes.active[token].forGroup[group].total,
+        votes.active[token].total
+    );
+    uint256 reward = FixidityLib
+        .newFixed(amount)
+        .multiply(votePortion)
+        .fromFixed();
+
+    uint256 newVoteTotal = votes.total[token].eligible.getValue(group).add(reward);
+    votes.total[token].eligible.update(group, newVoteTotal, lesser, greater);
+
+    votes.active[token].forGroup[group].total = votes.active[token].forGroup[group].total.add(reward);
+    votes.active[token].total = votes.active[token].total.add(reward);
+    emit EpochRewardsDistributedToVoters(token, group, reward);
+  }
 
   /**
    * @notice Increments the number of total votes for `group` by `value`.

@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 interface ILockedToken {
+  function getERC20Address() external view returns (address);
   function incrementNonvotingAccountBalance(address, uint256) external;
   function decrementNonvotingAccountBalance(address, uint256) external;
   function getAccountTotalLockedToken(address) external view returns (uint256);

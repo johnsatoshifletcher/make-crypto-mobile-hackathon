@@ -4,6 +4,7 @@ const LockedCGLD = artifacts.require("LockedCGLD");
 const LockedCUSD = artifacts.require("LockedCUSD");
 const LockedCEUR = artifacts.require("LockedCEUR");
 const AddressSortedLinkedList = artifacts.require("AddressSortedLinkedList");
+const FixidityLib = artifacts.require("FixidityLib");
 const Election = artifacts.require("Election");
 const CGLDAddress = require('../abis/CGLD.json').networks["44787"].address;
 const CUSDAddress = require('../abis/CUSD.json').networks["44787"].address;
@@ -11,20 +12,26 @@ const CEURAddress = require('../abis/CEUR.json').networks["44787"].address;
 
 module.exports = async function (deployer) {
   deployer.then(async () => {
-    await deployer.deploy(LockedCGLD, CGLDAddress, 0);
+    // Deploy Locked Tokens
+    await deployer.deploy(LockedCGLD, CGLDAddress, 10); // seconds to unlock
     const locked_cgld = await LockedCGLD.deployed();
-    await deployer.deploy(LockedCUSD, CUSDAddress, 0);
+    await deployer.deploy(LockedCUSD, CUSDAddress, 10); // seconds to unlock
     const locked_cusd = await LockedCUSD.deployed();
-    await deployer.deploy(LockedCEUR, CEURAddress, 0);
+    await deployer.deploy(LockedCEUR, CEURAddress, 10); // seconds to unlock
     const locked_ceur = await LockedCEUR.deployed();
 
+    // link libs to Election
     await deployer.deploy(AddressSortedLinkedList);
     await deployer.link(AddressSortedLinkedList, Election);
+    await deployer.deploy(FixidityLib);
+    await deployer.link(FixidityLib, Election);
 
+    // Deploy Election
     const toWei = Web3.utils.toWei;
     await deployer.deploy(
       Election, 
       [locked_cgld.address, locked_cusd.address, LockedCEUR.address], // token addresses
+      ["500", "250", "250"], // token weights
       [
         "0x000000000000000000000000000000000000000A",
         "0x000000000000000000000000000000000000000B",
@@ -32,18 +39,22 @@ module.exports = async function (deployer) {
         "0x000000000000000000000000000000000000000D"
       ], // validator group addresses
       [
-        [toWei("1"), toWei("2"), toWei("3"), toWei("4")],
-        [toWei("1"), toWei("2"), toWei("3"), toWei("4")],
-        [toWei("1"), toWei("2"), toWei("3"), toWei("4")],
+        [toWei("900"), toWei("1800"), toWei("2700"), toWei("3600")],
+        [toWei("600"), toWei("1150"), toWei("280"), toWei("900")],
+        [toWei("40"), toWei("170"), toWei("130"), toWei("90")],
       ], // validator default votes
       [
         ["0", "1", "2", "3"],
-        ["0", "1", "2", "3"],
-        ["0", "1", "2", "3"],
+        ["2", "0", "3", "1"],
+        ["0", "3", "2", "1"],
       ], // ordering
-      3 // max votes
+      3, // max votes
+      "0xe3d8bd6aed4f159bc8000a9cd47cffdb95f96121", // SWAP ADDRESS
+      CGLDAddress
     );
     const election = await Election.deployed();
+
+    // Update Locked Tokens with Election Address
     await locked_cgld.setElection(election.address);
     await locked_cusd.setElection(election.address);
     await locked_ceur.setElection(election.address);

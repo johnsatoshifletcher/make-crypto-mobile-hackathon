@@ -36,7 +36,9 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
 
     uint256 public totalNonvoting;
     uint256 public unlockingPeriod;
-    IERC20 public token; 
+    address public erc20Address;
+    IERC20 public erc20; 
+    address public electionAddress;
     IElection private election;
 
     event UnlockingPeriodSet(uint256 period);
@@ -46,29 +48,38 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     event TokenWithdrawn(address indexed account, uint256 value);
 
     /**
-    * @param tokenAddress The address of the ERC20 smart contract (e.g. CUSD, CGLD).
+    * @param _erc20Address The address of the ERC20 smart contract (e.g. CUSD, CGLD).
     * @param _unlockingPeriod The unlocking period in seconds.
     */
-    constructor(address tokenAddress, uint256 _unlockingPeriod) {
-        token = IERC20(tokenAddress);
+    constructor(address _erc20Address, uint256 _unlockingPeriod) {
+        erc20Address = _erc20Address;
+        erc20 = IERC20(_erc20Address);
         unlockingPeriod = _unlockingPeriod;
         emit UnlockingPeriodSet(_unlockingPeriod);
     }
 
     /**
+    * @notice Gets address of the ERC20 smart contract.
+    */
+    function getERC20Address() external view returns (address) {
+        return erc20Address;
+    }
+
+    /**
     * @notice Set address of election smart contract.
     */
-    function setElection(address election_address) public {
-        election = IElection(election_address);
+    function setElection(address _electionAddress) public {
+        electionAddress = _electionAddress;
+        election = IElection(_electionAddress);
     }
 
     /**
     * @notice Locks token to be used for voting.
     */
     function lock(uint256 amount) external nonReentrant {
-        require(amount <= token.allowance(msg.sender, address(this)), "insufficient allowance");
+        require(amount <= erc20.allowance(msg.sender, address(this)), "insufficient allowance");
 
-        token.transferFrom(msg.sender, address(this), amount);
+        erc20.transferFrom(msg.sender, address(this), amount);
 
         _incrementNonvotingAccountBalance(msg.sender, amount);
         emit TokenLocked(msg.sender, amount);
@@ -82,7 +93,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     */
     function incrementNonvotingAccountBalance(address account, uint256 value) external
     {
-        // require(registry.getAddressForOrDie(identifierHash) == msg.sender, "only registered contract");
+        require(msg.sender == electionAddress, "only election contract");
         _incrementNonvotingAccountBalance(account, value);
     }
 
@@ -94,7 +105,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     */
     function decrementNonvotingAccountBalance(address account, uint256 value) external
     {
-        // require(registry.getAddressForOrDie(identifierHash) == msg.sender, "only registered contract");
+        require(msg.sender == electionAddress, "only election contract");
         _decrementNonvotingAccountBalance(account, value);
     }
 
@@ -174,8 +185,8 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
         require(block.timestamp >= pendingWithdrawal.timestamp, "Pending withdrawal not available");
         uint256 value = pendingWithdrawal.value;
         deletePendingWithdrawal(account.pendingWithdrawals, index);
-        require(value <= token.balanceOf(address(this)), "Inconsistent balance"); // Modified
-        token.transfer(msg.sender, value); // Modified
+        require(value <= erc20.balanceOf(address(this)), "Inconsistent balance"); // Modified
+        erc20.transfer(msg.sender, value); // Modified
         emit TokenWithdrawn(msg.sender, value);
     }
 
