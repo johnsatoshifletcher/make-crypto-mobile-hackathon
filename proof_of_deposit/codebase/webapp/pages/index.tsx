@@ -3,15 +3,15 @@ import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
 import { WithLayout } from '../components';
 
 import {
-  Transfer,
+  // Transfer,
   Earn,
   EarnToken,
-  Vote,
-  LendOverview,
-  LendToken,
+  // Vote,
+  // LendOverview,
+  // LendToken,
   Settings,
-  Stream,
-  Swap,
+  // Stream,
+  // Swap,
   Dashboard,
 } from '../_pages';
 

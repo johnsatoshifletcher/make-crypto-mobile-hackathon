@@ -29,12 +29,6 @@ export async function swap(
   toTokenAddress: Address,
   amount: string
 ) {
-  console.log("here3", {
-    address,
-    fromTokenAddress,
-    toTokenAddress,
-    amount
-  });
   const fromToken = new kit.web3.eth.Contract(
     ERC20Abi as any,
     fromTokenAddress

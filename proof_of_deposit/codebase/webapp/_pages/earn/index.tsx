@@ -1,4 +1,7 @@
+import { useContractKit } from '@celo-tools/use-contractkit';
+import { useState, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Loader from 'react-loader-spinner';
 import Image from 'next/image';
 import {
   Panel,
@@ -6,16 +9,104 @@ import {
   PanelWithButton,
   PanelHeader,
   Table,
+  toast
 } from '../../components';
-import { tokens } from '../../constants';
+import Web3 from 'web3';
+import { tokens, LockedERC20 } from '../../constants';
 import { Base } from '../../state';
-import { formatAmount } from '../../utils';
+import { formatAmount, Election, electionAddress } from '../../utils';
+import ERC20 from '../../utils/abis/ERC20.json';
+import { BigNumber } from 'bignumber.js';
+
+enum States {
+  None,
+  Distributing
+}
 
 export function Earn() {
   const {
     fetchingBalances,
     balances,
   } = Base.useContainer();
+
+  const { kit, network, performActions, address } = useContractKit();
+
+  const [epochRewards, setEpochRewards] = useState(
+    tokens.reduce((prev, t) => {
+      return {
+        ...prev,
+        [t.ticker]: {
+          rewards: new BigNumber(0), 
+          apy: new BigNumber(0),
+          total_votes: new BigNumber(0)
+        }
+      };
+    }, {}
+  ));
+  const [state, setState] = useState(States.None);
+
+  const distribute = async () => {
+    setState(States.Distributing);
+    try {
+      await performActions(async (k) => {   
+        let txObjects = await Promise.all(
+          tokens.map((t, i) => {
+            const erc20 = new k.web3.eth.Contract(
+              ERC20 as any,
+              tokens[i].networks[network.name]
+            );
+
+            return erc20.methods.approve(electionAddress, Web3.utils.toWei("1000"));
+        }));
+        await Promise.all(
+          txObjects.map(tx => k.sendTransactionObject(tx, { from: address }))
+        );
+
+        const election = new Election(k, "0x0", address);
+        await election.distributeEpochRewards(new BigNumber(Web3.utils.toWei("1")));
+      });
+      toast.success('Rewards distributed');
+    } catch (e) {
+      toast.error(`Unable to distribute rewards ${e.message}`);
+    } finally {
+      setState(States.None);
+    }
+  };
+
+  const fetchEpochRewards = useCallback(async () => {
+    const rewards = await Promise.all(
+      tokens.map(async (t) => {
+        const election = new Election(kit, LockedERC20[t.ticker].address, address);
+        return election.getEpochTokenRewards(new BigNumber(Web3.utils.toWei("1")));
+      })
+    );
+    const total_votes = await Promise.all(
+      tokens.map(async (t) => {
+        const election = new Election(kit, LockedERC20[t.ticker].address, address);
+        return election.getTotalVotes();
+      })
+    );
+    const epochs_per_year = new BigNumber("365");
+
+    const _epochRewards = tokens.reduce((prev, t, i) => {
+        return {
+          ...prev,
+          [t.ticker]: {
+            rewards: rewards[i],
+            apy: epochs_per_year.times(rewards[i]).div(total_votes[i]).times(100),
+            total_votes: total_votes[i]
+          }
+        };
+      }, {}
+    );
+
+    setEpochRewards(_epochRewards);
+  }, [kit, address]);
+
+  useEffect(() => {
+    fetchEpochRewards();
+  }, [fetchEpochRewards]);
+
 
   return (
     <>
@@ -66,6 +157,7 @@ export function Earn() {
               '',
               'Ticker',
               'Market APY',
+              'Total Votes',
               'Locked (Voting %)',
               'Unlocking (Ready %)',
             ]}
@@ -96,9 +188,12 @@ export function Earn() {
                   </div>,
                   <div>
                     <span className="text-green-500 mr-1">
-                      5.00
+                      {epochRewards[ticker].apy.toFixed(2)}
                     </span>
                     %
+                  </div>,
+                  <div className="font-semibold">
+                    {formatAmount(epochRewards[ticker].total_votes)}
                   </div>,
                   <div className="font-semibold">
                     {formatAmount(total_locked)} ({voting_pct.isNaN() ? '0' : voting_pct.toFixed(0)} %)
@@ -121,8 +216,13 @@ export function Earn() {
 
         <button
           className="ml-auto primary-button"
+          onClick={distribute}
         >
-          Distribute 1 CELO
+          {state === States.Distributing ? (
+            <Loader type="TailSpin" height={20} width={20} />
+          ) : (
+            'Distribute 1 CELO'
+          )}          
         </button>
       </PanelWithButton>
     </>
