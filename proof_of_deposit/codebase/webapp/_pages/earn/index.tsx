@@ -147,6 +147,26 @@ export function Earn() {
 
       <Panel>
         <PanelHeader>Lockable Tokens</PanelHeader>
+        <PanelDescription>
+          The Market APY and Epoch Rewards for lockable tokens are calculated based on 1 CELO per epoch{' '}
+          and 365 epochs per year with the rewards being divided amongst locked tokens in the following configurable{' '}
+          proportion:
+          <ul className="list-inside list-disc mb-1">
+            <li>
+              CELO - 50%
+            </li>
+            <li>
+              cUSD - 25%
+            </li>
+            <li>
+              cEUR - 25%
+            </li>
+          </ul> 
+          <p>
+          The proportion of CELO epoch rewards paid to cUSD and cEUR are coverted into{' '}
+          their respective currency via <a href="https://ubeswap.org/" className="text-blue-500">Ubeswap</a>. 
+          </p>
+        </PanelDescription>
 
         <div className="-mx-5">
           <Table
@@ -154,6 +174,7 @@ export function Earn() {
               '',
               'Ticker',
               'Market APY',
+              'Epoch Rewards',
               'Total Votes',
               'Locked (Voting %)',
               'Unlocking (Ready %)',
@@ -189,6 +210,11 @@ export function Earn() {
                     </span>
                     %
                   </div>,
+                  <div>
+                    <span className="text-green-500 mr-1">
+                      {formatAmount(epochRewards[ticker].rewards)}
+                    </span>
+                  </div>,
                   <div className="font-semibold">
                     {formatAmount(epochRewards[ticker].total_votes)}
                   </div>,
@@ -209,6 +235,10 @@ export function Earn() {
           <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">
             Simulate Epoch Rewards
           </h3>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
+            By pressing the button, your wallet will transfer 1 CELO to the election smart contract,{' '}
+            whereupon it will be divided amongst lockable tokens as a simulated epoch reward.
+          </p>
         </div>
 
         <button

@@ -1,11 +1,9 @@
 import { useContractKit } from '@celo-tools/use-contractkit';
-import { ContractKit } from '@celo/contractkit';
 import { GroupVote } from '@celo/contractkit/lib/wrappers/Election';
-import { ValidatorGroup } from '@celo/contractkit/lib/wrappers/Validators';
 import { Address } from '@celo/connect'
 import { BigNumber } from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Loader from 'react-loader-spinner';
 import Web3 from 'web3';
 import Image from 'next/image';
@@ -25,7 +23,6 @@ import {
 import { tokens, LockedERC20 } from '../../constants';
 import { Base } from '../../state';
 import { formatAmount, truncate, truncateAddress, Election, eqAddress } from '../../utils';
-import { StringValueNode } from 'graphql';
 
 
 enum States {
@@ -166,7 +163,7 @@ export function EarnToken() {
     setLoading(true);
 
     const election = new Election(kit, tokenAddress, address);
-    const votedForGroups = await election.getGroupsVotedForByAccount();
+    const votedForGroups = address ? await election.getGroupsVotedForByAccount() : [];
     const _groupVotes = await Promise.all(
       votedForGroups.map((groupAddress) =>
         election.getVotesForGroupByAccount(groupAddress)
@@ -178,7 +175,7 @@ export function EarnToken() {
     setGroupVotes(_groupVotes);
 
     setHasActivatablePendingVotes(
-      await election.hasActivatablePendingVotes()
+      address ? await election.hasActivatablePendingVotes() : false
     );
 
     setTotalVotes(_totalVotes);
@@ -213,13 +210,29 @@ export function EarnToken() {
       <Panel>
         <PanelHeader>Earn with {token.ticker}</PanelHeader>
         <PanelDescription>
-          When locking {token.ticker} it's important to note that there are a few
-          states your {token.ticker} can be in, available, locked (voting or non-voting), and unlocking (pending or ready to withdraw). 
-          Proof-of-deposit is based on the same mechanism as LockedGold, checkout
-          the{' '}
-          <Link link="https://docs.celo.org/celo-codebase/protocol/proof-of-stake/locked-gold">
-            LockedGold documentation
-          </Link>
+        Proof-of-deposit is based on the same mechanism as{' '}
+        <a href="https://docs.celo.org/celo-codebase/protocol/proof-of-stake/locked-gold" className="text-blue-500">
+          LockedGold
+        </a>. As such, your {token.ticker} can be in one of the following states:
+          <ul className="list-inside list-disc mb-1">
+            <li>
+              Available - part of your normal transferable balance.
+            </li>
+            <li>
+              Locked Voting - either pending or active (only active earns passive rewards)
+            </li>
+            <li>
+              Locked Non-Voting
+            </li>
+            <li>
+              Unlocking - either pending or ready to withdraw
+            </li>
+          </ul>
+          <p>
+            <a href="https://github.com/yc5915/make-crypto-mobile-hackathon/blob/master/proof_of_deposit/codebase/contracts/contracts/LockedToken.sol" className="text-blue-500">
+              Checkout LockedToken
+            </a>{' '}(our modification of LockedGold) to see how we have made it compatible with any ERC20 token.
+          </p>
         </PanelDescription>
         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-2"></p>
 
@@ -450,17 +463,14 @@ export function EarnToken() {
             Validator groups
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
-            Take a look at the below validator groups before voting to have a
-            more informed choice. More information around what you should be
-            looking for in a validator group can be found in the{' '}
-            <a
-              className="text-blue-500"
-              target="_blank"
-              href="https://docs.celo.org/celo-owner-guide/voting-validators"
-            >
-              Voting for Validator Groups
-            </a>{' '}
-            guide.
+            The following validator groups along with their initial active votes are set{' '}
+            when instantiating{' '}
+            <a href="https://github.com/yc5915/make-crypto-mobile-hackathon/blob/master/proof_of_deposit/codebase/contracts/contracts/Election.sol" className="text-blue-500">
+              our modified version of the Election smart contract
+            </a>. Our truffle deployment script{' '}
+            <a href="https://github.com/yc5915/make-crypto-mobile-hackathon/blob/master/proof_of_deposit/codebase/contracts/migrations/2_locked_tokens.js" className="text-blue-500">
+              can be found here
+            </a>.
           </p>
         </div>
 
