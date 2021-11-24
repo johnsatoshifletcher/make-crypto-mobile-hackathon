@@ -1,8 +1,10 @@
 import { useContractKit } from '@celo-tools/use-contractkit';
 import { GroupVote } from '@celo/contractkit/lib/wrappers/Election';
-import { Address } from '@celo/connect'
+import { Address, eqAddress } from '@celo/base';
+import { AddressUtils } from '@celo/utils';
 import { BigNumber } from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
+import useStateRef from 'react-usestateref';
 import { useParams } from 'react-router-dom';
 import Loader from 'react-loader-spinner';
 import Web3 from 'web3';
@@ -22,7 +24,7 @@ import {
 } from '../../components';
 import { tokens, LockedERC20 } from '../../constants';
 import { Base } from '../../state';
-import { formatAmount, truncate, truncateAddress, Election, eqAddress } from '../../utils';
+import { formatAmount, truncate, truncateAddress, Election } from '../../utils';
 
 
 enum States {
@@ -45,6 +47,7 @@ export function EarnToken() {
   const { kit, performActions, address } = useContractKit();
   const {
     accountSummary,
+    accountSummaryRef,
     fetchBalances,
     balances,
     track,
@@ -71,7 +74,7 @@ export function EarnToken() {
   const [votingAddress, setVotingAddress] = useState('');
 
   const [totalVotes, setTotalVotes] = useState(new BigNumber(0));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading, loadingRef] = useStateRef(false);
   const [adding, setAdding] = useState(false);
 
   const [sort, setSort] = useState({ property: 'score', desc: true });
@@ -161,13 +164,15 @@ export function EarnToken() {
   };
 
   const fetchVotingSummary = useCallback(async () => {
-    if (loading) {
+    if (loadingRef.current) {
       return;
     }
     setLoading(true);
 
+    const address = accountSummaryRef.current.address;
+    const isNull = eqAddress(address, AddressUtils.NULL_ADDRESS)
     const election = new Election(kit, tokenAddress, address);
-    const votedForGroups = address ? await election.getGroupsVotedForByAccount() : [];
+    const votedForGroups = isNull ? [] : await election.getGroupsVotedForByAccount();
     const _groupVotes = await Promise.all(
       votedForGroups.map((groupAddress) =>
         election.getVotesForGroupByAccount(groupAddress)
@@ -179,7 +184,7 @@ export function EarnToken() {
     setGroupVotes(_groupVotes);
 
     setHasActivatablePendingVotes(
-      address ? await election.hasActivatablePendingVotes() : false
+      isNull ? false : await election.hasActivatablePendingVotes()
     );
 
     setTotalVotes(_totalVotes);
@@ -196,10 +201,8 @@ export function EarnToken() {
     }));
 
     setLoading(false);
-    if (eqAddress(accountSummary.address, address)) {
-      setTimeout(fetchBalances, 1000);
-    }
-  }, [kit, address]);
+    setTimeout(fetchVotingSummary, 1000);
+  }, [kit, address, accountSummary]);
 
   useEffect(() => {
     fetchVotingSummary();

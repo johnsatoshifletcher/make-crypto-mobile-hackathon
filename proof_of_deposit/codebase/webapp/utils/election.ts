@@ -1,10 +1,8 @@
 import ElectionABI from './abis/Election.json';
-import { Address } from '@celo/connect'
 import { BigNumber } from 'bignumber.js';
+import { Address, eqAddress } from '@celo/base';
 
-export function trimLeading0x(input) { return (input.startsWith('0x') ? input.slice(2) : input); };
-export function normalizeAddress(a) { return trimLeading0x(a).toLowerCase(); };
-export function eqAddress(a, b) { return normalizeAddress(a) === normalizeAddress(b); };
+
 export const electionAddress = ElectionABI.networks["44787"].address;
 
 export class Election {

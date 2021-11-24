@@ -1,11 +1,10 @@
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 import { Network, useContractKit } from '@celo-tools/use-contractkit';
 import { Address, eqAddress } from '@celo/base';
-import { PendingWithdrawal } from '@celo/contractkit/lib/wrappers/LockedGold';
 import { AddressUtils } from '@celo/utils';
 import BigNumber from 'bignumber.js';
-import { totalmem } from 'node:os';
 import { useCallback, useEffect, useState } from 'react';
+import useStateRef from 'react-usestateref';
 import toast from 'react-hot-toast';
 import { createContainer } from 'unstated-next';
 import { FiatCurrency, tokens, LockedERC20 } from '../constants';
@@ -57,12 +56,6 @@ const defaultBalances = tokens.reduce(
   }),
   {}
 );
-const defaultLockedSummary = {
-  total: new BigNumber(0),
-  nonVoting: new BigNumber(0),
-  withdrawable: new BigNumber(0),
-  unlocking: new BigNumber(0),
-};
 
 const defaultSettings = {
   currency: FiatCurrency.USD,
@@ -83,7 +76,7 @@ function State() {
   const [graphql, setGraphql] = useState(getApolloClient(network));
   const [settings, setSettings] = useState(initialSettings);
 
-  const [accountSummary, setAccountSummary] = useState<AccountSummary>(
+  const [accountSummary, setAccountSummary, accountSummaryRef] = useStateRef<AccountSummary>(
     defaultAccountSummary
   );
   const [balances, setBalances] = useState<{
@@ -95,113 +88,112 @@ function State() {
       withdrawable: BigNumber;
     }
   }>(defaultBalances);
-  const [fetchingBalances, setFetchingBalances] = useState(false);
+  const [fetchingBalances, setFetchingBalances, fetchingBalancesRef] = useStateRef(false);
 
   useEffect(() => {
     setGraphql(getApolloClient(network));
   }, [network]);
 
   const fetchBalances = useCallback(async () => {
-    if (!address || fetchingBalances) {
-      if(!address){
-        setBalances({
-          ...defaultBalances,
-        });
-      }
+    if (fetchingBalancesRef.current) {
       return;
     }
     setFetchingBalances(true);
 
-    try {
-      const goldToken = await kit.contracts.getGoldToken();
-      const erc20s = await Promise.all(
-        tokens
-          .filter((t) => !!t.networks[network.name])
-          .map(async (t) => {
-            const tokenAddress = t.networks[network.name];
-            let balance;
-            // this is due to a bug where erc20.balanceOf on native asset
-            // is way off.
-            if (eqAddress(tokenAddress, goldToken.address)) {
-              balance = await goldToken.balanceOf(address);
-            } else {
-              const erc20 = new kit.web3.eth.Contract(
-                ERC20 as any,
-                tokenAddress
+    const address = accountSummaryRef.current.address;
+    if (eqAddress(address, AddressUtils.NULL_ADDRESS)) {
+      setBalances(defaultBalances);
+    }else{
+      try {
+        const goldToken = await kit.contracts.getGoldToken();
+        const erc20s = await Promise.all(
+          tokens
+            .filter((t) => !!t.networks[network.name])
+            .map(async (t) => {
+              const tokenAddress = t.networks[network.name];
+              let balance;
+              // this is due to a bug where erc20.balanceOf on native asset
+              // is way off.
+              if (eqAddress(tokenAddress, goldToken.address)) {
+                balance = await goldToken.balanceOf(address);
+              } else {
+                const erc20 = new kit.web3.eth.Contract(
+                  ERC20 as any,
+                  tokenAddress
+                );
+                balance = await erc20.methods.balanceOf(address).call();
+              }
+              
+              const locked_erc20 = new kit.web3.eth.Contract(
+                  LockedERC20[t.ticker].contract.abi as any,
+                  LockedERC20[t.ticker].address
               );
-              balance = await erc20.methods.balanceOf(address).call();
-            }
-            
-            const locked_erc20 = new kit.web3.eth.Contract(
-                LockedERC20[t.ticker].contract.abi as any,
-                LockedERC20[t.ticker].address
-            );
 
-            let total_locked = await locked_erc20.methods.getAccountTotalLockedToken(address).call();
-            let nonvoting_locked = await locked_erc20.methods.getAccountNonvotingLockedToken(address).call();
-            let pendingWithdrawals = await locked_erc20.methods.getPendingWithdrawals(address).call();
-            let withdrawals = pendingWithdrawals[0]
-              .reduce(
-              (totals, value, i) => {
-                value = new BigNumber(value);
-                const time = new BigNumber(pendingWithdrawals[1][i]);
-                const available = new Date(time.toNumber() * 1000);
-        
-                if (available.getTime() < Date.now()) {
+              let total_locked = await locked_erc20.methods.getAccountTotalLockedToken(address).call();
+              let nonvoting_locked = await locked_erc20.methods.getAccountNonvotingLockedToken(address).call();
+              let pendingWithdrawals = await locked_erc20.methods.getPendingWithdrawals(address).call();
+              let withdrawals = pendingWithdrawals[0]
+                .reduce(
+                (totals, value, i) => {
+                  value = new BigNumber(value);
+                  const time = new BigNumber(pendingWithdrawals[1][i]);
+                  const available = new Date(time.toNumber() * 1000);
+          
+                  if (available.getTime() < Date.now()) {
+                    return {
+                      unlocking: totals.unlocking.plus(value),
+                      withdrawable: totals.withdrawable.plus(value),
+                    };
+                  }
+          
                   return {
+                    ...totals,
                     unlocking: totals.unlocking.plus(value),
-                    withdrawable: totals.withdrawable.plus(value),
                   };
-                }
-        
-                return {
-                  ...totals,
-                  unlocking: totals.unlocking.plus(value),
-                };
-              },
-              { withdrawable: new BigNumber(0), unlocking: new BigNumber(0) }
-            );
+                },
+                { withdrawable: new BigNumber(0), unlocking: new BigNumber(0) }
+              );
 
-            return {
-              ...t,
-              balance,
-              total_locked,
-              nonvoting_locked,
-              unlocking: withdrawals.unlocking,
-              withdrawable: withdrawals.withdrawable
-            };
-          })
-      );
+              return {
+                ...t,
+                balance,
+                total_locked,
+                nonvoting_locked,
+                unlocking: withdrawals.unlocking,
+                withdrawable: withdrawals.withdrawable
+              };
+            })
+        );
 
-      const balances = erc20s.reduce((accum, t) => {
-        return {
-          ...accum,
-          [t.ticker]: {
-            balance: new BigNumber(t.balance),
-            total_locked: new BigNumber(t.total_locked),
-            nonvoting_locked: new BigNumber(t.nonvoting_locked),
-            unlocking: new BigNumber(t.unlocking),
-            withdrawable: new BigNumber(t.withdrawable),
-          }
-        };
-      }, {});
+        const balances = erc20s.reduce((accum, t) => {
+          return {
+            ...accum,
+            [t.ticker]: {
+              balance: new BigNumber(t.balance),
+              total_locked: new BigNumber(t.total_locked),
+              nonvoting_locked: new BigNumber(t.nonvoting_locked),
+              unlocking: new BigNumber(t.unlocking),
+              withdrawable: new BigNumber(t.withdrawable),
+            }
+          };
+        }, {});
 
-      setBalances({
-        ...defaultBalances,
-        ...balances,
-      });
-    } catch (e) {
-      toast.error(e.message);
+        setBalances({
+          ...defaultBalances,
+          ...balances,
+        });
+      } catch (e) {
+        toast.error(e.message);
+      }
     }
 
     setFetchingBalances(false);
-    if (eqAddress(accountSummary.address, address)) {
-      setTimeout(fetchBalances, 1000);
-    }
-  }, [address, network, kit]);
+    setTimeout(fetchBalances, 1000);
+  }, [address, network, kit, accountSummary]);
 
   const fetchAccountSummary = useCallback(async () => {
     if (!address) {
+      setAccountSummary(defaultAccountSummary);
       return;
     }
 
@@ -264,6 +256,7 @@ function State() {
     graphql,
     accountSummary,
     fetchAccountSummary,
+    accountSummaryRef,
 
     fetchBalances,
     balances,

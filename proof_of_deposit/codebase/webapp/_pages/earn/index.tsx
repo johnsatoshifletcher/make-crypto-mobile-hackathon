@@ -1,5 +1,6 @@
 import { useContractKit } from '@celo-tools/use-contractkit';
 import { useState, useCallback, useEffect } from 'react';
+import useStateRef from 'react-usestateref';
 import { Link } from 'react-router-dom';
 import Loader from 'react-loader-spinner';
 import Image from 'next/image';
@@ -17,6 +18,7 @@ import { Base } from '../../state';
 import { formatAmount, Election, electionAddress } from '../../utils';
 import ERC20 from '../../utils/abis/ERC20.json';
 import { BigNumber } from 'bignumber.js';
+import { eqAddress } from '@celo/base';
 
 enum States {
   None,
@@ -25,7 +27,8 @@ enum States {
 
 export function Earn() {
   const {
-    fetchingBalances,
+    accountSummary,
+    accountSummaryRef,
     balances,
   } = Base.useContainer();
 
@@ -43,6 +46,7 @@ export function Earn() {
       };
     }, {}
   ));
+  const [loading, setLoading, loadingRef] = useStateRef(false);
   const [state, setState] = useState(States.None);
 
   const distribute = async () => {
@@ -80,6 +84,12 @@ export function Earn() {
   };
 
   const fetchEpochRewards = useCallback(async () => {
+    if (loadingRef.current) {
+      return;
+    }
+    setLoading(true);
+
+    const address = accountSummaryRef.current.address;
     const rewards = await Promise.all(
       tokens.map(async (t) => {
         const election = new Election(kit, LockedERC20[t.ticker].address, address);
@@ -107,7 +117,8 @@ export function Earn() {
     );
 
     setEpochRewards(_epochRewards);
-  }, [kit, address]);
+    setTimeout(fetchEpochRewards, 1000);
+  }, [kit, address, accountSummary]);
 
   useEffect(() => {
     fetchEpochRewards();
