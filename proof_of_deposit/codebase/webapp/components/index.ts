@@ -1,11 +1,9 @@
-export * from './balances';
 export * from './circular-progress-bar';
 export * from './copy-text';
 export * from './dropdown';
 export * from './input';
 export * from './layout';
 export * from './lock';
-export * from './lock_bkp';
 export * as toast from './toast';
 export * from './toggle';
 export * from './table';

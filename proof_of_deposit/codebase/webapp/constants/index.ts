@@ -1,5 +1,4 @@
-import { Alfajores, Mainnet, Baklava } from '@celo-tools/use-contractkit';
+import { Alfajores } from '@celo-tools/use-contractkit';
 export * from './tokens';
-export * as ubeswap from './ubeswap';
 
-export const networks = [Mainnet, Alfajores, Baklava];
+export const networks = [Alfajores];
