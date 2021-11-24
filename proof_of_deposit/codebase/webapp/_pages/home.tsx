@@ -2,7 +2,7 @@ import { PanelWithButton, PanelDescription, PanelHeader } from '../components';
 import Image from 'next/image';
 
 
-export function Dashboard() {
+export function AboutOurTech() {
   return (
     <>
       <PanelWithButton>
