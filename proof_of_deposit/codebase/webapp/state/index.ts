@@ -86,12 +86,6 @@ function State() {
   const [accountSummary, setAccountSummary] = useState<AccountSummary>(
     defaultAccountSummary
   );
-  const [lockedSummary, setLockedSummary] = useState<{
-    withdrawable: BigNumber;
-    unlocking: BigNumber;
-    nonVoting: BigNumber;
-    total: BigNumber;
-  }>(defaultLockedSummary);
   const [balances, setBalances] = useState<{
     [x: string]: {
       balance: BigNumber;
@@ -108,10 +102,14 @@ function State() {
   }, [network]);
 
   const fetchBalances = useCallback(async () => {
-    if (!address) {
+    if (!address || fetchingBalances) {
+      if(!address){
+        setBalances({
+          ...defaultBalances,
+        });
+      }
       return;
     }
-
     setFetchingBalances(true);
 
     try {
@@ -197,6 +195,9 @@ function State() {
     }
 
     setFetchingBalances(false);
+    if (eqAddress(accountSummary.address, address)) {
+      setTimeout(fetchBalances, 1000);
+    }
   }, [address, network, kit]);
 
   const fetchAccountSummary = useCallback(async () => {
@@ -207,46 +208,6 @@ function State() {
     const accounts = await kit.contracts.getAccounts();
     try {
       setAccountSummary(await accounts.getAccountSummary(address));
-    } catch (_) {}
-  }, [kit, address]);
-
-  const fetchLockedSummary = useCallback(async () => {
-    if (!address) {
-      return;
-    }
-
-    const locked = await kit.contracts.getLockedGold();
-
-    const { pendingWithdrawals, lockedGold } = await locked.getAccountSummary(
-      address
-    );
-
-    const withdrawals = pendingWithdrawals.reduce(
-      (totals, { time, value }) => {
-        const available = new Date(time.toNumber() * 1000);
-
-        if (available.getTime() < Date.now()) {
-          return {
-            ...totals,
-            withdrawable: totals.withdrawable.plus(value),
-          };
-        }
-
-        return {
-          ...totals,
-          unlocking: totals.unlocking.plus(value),
-        };
-      },
-      { withdrawable: new BigNumber(0), unlocking: new BigNumber(0) }
-    );
-
-    try {
-      setLockedSummary({
-        unlocking: withdrawals.unlocking,
-        withdrawable: withdrawals.withdrawable,
-        total: lockedGold.total,
-        nonVoting: lockedGold.nonvoting,
-      });
     } catch (_) {}
   }, [kit, address]);
 
@@ -295,10 +256,9 @@ function State() {
   );
 
   useEffect(() => {
-    fetchAccountSummary();
     fetchBalances();
-    fetchLockedSummary();
-  }, [fetchAccountSummary, fetchBalances, fetchLockedSummary]);
+    fetchAccountSummary();
+  }, [fetchBalances, fetchAccountSummary]);
 
   return {
     graphql,
@@ -308,9 +268,6 @@ function State() {
     fetchBalances,
     balances,
     fetchingBalances,
-
-    lockedSummary,
-    fetchLockedSummary,
 
     toggleDarkMode,
     updateDefaultFiatCurrency,

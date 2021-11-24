@@ -44,6 +44,7 @@ export function EarnToken() {
 
   const { kit, performActions, address } = useContractKit();
   const {
+    accountSummary,
     fetchBalances,
     balances,
     track,
@@ -160,6 +161,9 @@ export function EarnToken() {
   };
 
   const fetchVotingSummary = useCallback(async () => {
+    if (loading) {
+      return;
+    }
     setLoading(true);
 
     const election = new Election(kit, tokenAddress, address);
@@ -192,6 +196,9 @@ export function EarnToken() {
     }));
 
     setLoading(false);
+    if (eqAddress(accountSummary.address, address)) {
+      setTimeout(fetchBalances, 1000);
+    }
   }, [kit, address]);
 
   useEffect(() => {
@@ -487,7 +494,7 @@ export function EarnToken() {
               setSort({ property, desc });
             }}
             sort={sort}
-            loading={loading}
+            loading={false}
             noDataMessage="No validator groups found"
             rows={groups.sort(sortFn).map((g) => [
               <div>

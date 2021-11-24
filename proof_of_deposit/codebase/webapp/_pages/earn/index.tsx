@@ -52,12 +52,21 @@ export function Earn() {
         const cgld = new k.web3.eth.Contract(
           ERC20 as any,
           Celo.networks[network.name]
-        );
+        );       
 
+        const allowance = new BigNumber(Web3.utils.toWei("1000"));
+        const min_allowance = new BigNumber(Web3.utils.toWei("1"));
         await k.sendTransactionObject(
-          await cgld.methods.approve(electionAddress, Web3.utils.toWei("1000")),
+          await cgld.methods.approve(electionAddress, allowance),
           { from: address }
         );          
+
+        while(true){
+          if(min_allowance.lte(await cgld.methods.allowance(address, electionAddress).call())) {
+            break;
+          }
+          await new Promise(r => setTimeout(r, 1000));
+        }
 
         const election = new Election(k, "0x0", address);
         await election.distributeEpochRewards(new BigNumber(Web3.utils.toWei("1")));
@@ -180,7 +189,7 @@ export function Earn() {
               'Unlocking (Ready %)',
             ]}
             noDataMessage="No validator groups found"
-            loading={fetchingBalances}
+            loading={false}
             rows={Object.keys(balances)
               .map((ticker) => {
                 const total_locked = balances[ticker].total_locked;

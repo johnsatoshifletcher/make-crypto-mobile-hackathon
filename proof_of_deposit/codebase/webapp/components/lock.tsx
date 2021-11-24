@@ -52,10 +52,15 @@ export function LockToken({
           tokenAddress
         );
         let txObject;
-        const allowance = new BigNumber(await erc20.methods.allowance(address, locked_erc20.address).call());
-        if(allowance.lt(lockAmount)){
-          txObject = await erc20.methods.approve(locked_erc20.address, toWei("1000"));
-          await k.sendTransactionObject(txObject, { from: address });
+        const allowance = new BigNumber(toWei(lockAmount));
+        txObject = await erc20.methods.approve(locked_erc20.address, allowance);
+        await k.sendTransactionObject(txObject, { from: address });
+
+        while(true){
+          if(allowance.lte(await erc20.methods.allowance(address, locked_erc20.address).call())) {
+            break;
+          }
+          await new Promise(r => setTimeout(r, 1000));
         }
 
         const contract = new k.web3.eth.Contract(
