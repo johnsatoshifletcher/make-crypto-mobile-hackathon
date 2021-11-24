@@ -88,65 +88,6 @@ export function Settings() {
 
   return (
     <>
-      <PanelWithButton>
-        <PanelGrid>
-          <div>
-            <PanelHeader>General</PanelHeader>
-            <PanelDescription>
-              Allow people to identify you on the Celo network
-            </PanelDescription>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium ">
-                Name
-              </label>
-              <div className="mt-1">
-                <Input
-                  id="name"
-                  name="name"
-                  placeholder="John Doe"
-                  value={state.name}
-                  onChange={(e) => changeProperty('name', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="metadataURL"
-                className="block text-sm font-medium "
-              >
-                Metadata URL
-              </label>
-              <div className="mt-1">
-                <Input
-                  id="metadataURL"
-                  name="metadataURL"
-                  placeholder="https://example.com/metadata.json"
-                  value={state.metadataURL}
-                  onChange={(e) =>
-                    changeProperty('metadataURL', e.target.value)
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        </PanelGrid>
-
-        <button
-          onClick={save}
-          disabled={saving}
-          className="ml-auto primary-button"
-        >
-          {saving ? (
-            <Loader type="TailSpin" height={24} width={24} color="white" />
-          ) : (
-            'Submit'
-          )}
-        </button>
-      </PanelWithButton>
-
       <Panel>
         <PanelGrid>
           <div>
@@ -255,9 +196,7 @@ export function Settings() {
                   updateNetwork(network);
                 }}
               >
-                {Object.values(NetworkNames).map((n) => (
-                  <option value={n}>{n}</option>
-                ))}
+                <option value="Alfajores">Alfajores</option>
               </select>
             </div>
 
