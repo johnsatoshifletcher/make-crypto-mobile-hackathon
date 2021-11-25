@@ -22,9 +22,8 @@ function createContract(contract, networkId){
     return new web3.eth.Contract(contract.abi, contract.networks[networkId].address);
 }
 
-
 async function sendTx(account, txObject){
-    let tx = await kit.sendTransactionObject(txObject, { from: account.address });
+    let tx = await kit.sendTransactionObject(txObject, { from: account.address, gas: 20000000 });
     return tx.waitReceipt()
 }
 
@@ -58,11 +57,41 @@ async function test(){
     //     )
     //     .call();
     // console.log(Web3.utils.fromWei(result));
-
+    // console.log("cgld", Web3.utils.fromWei(await Election_inst.methods.getEpochRewards(LockedCGLD_inst._address, Web3.utils.toWei("1"), false).call()));
+    // console.log("cusd", Web3.utils.fromWei(await Election_inst.methods.getEpochRewards(LockedCUSD_inst._address, Web3.utils.toWei("1"), false).call()));
+    // console.log("ceur", Web3.utils.fromWei(await Election_inst.methods.getEpochRewards(LockedCEUR_inst._address, Web3.utils.toWei("1"), false).call()));
     console.log("increasing allowance");
     await sendTx(account, await CGLD_inst.methods.approve(Election_inst._address, Web3.utils.toWei("1")));
+    // console.log("getting groups");
+    // let groups = await Election_inst.methods.getEligibleValidatorGroups(LockedCGLD_inst._address).call();
+    // console.log(groups);
+    // console.log("getGroupsTotalVotesNormalised");
+    // console.log(
+    //     await Election_inst.methods.getGroupsTotalVotesNormalised(LockedCGLD_inst._address).call()
+    // );
+    // console.log("getGroupsInfluenceFromTotalVotes");
+    // console.log(
+    //     await Election_inst.methods.getGroupsInfluenceFromTotalVotes().call()
+    // );
+    console.log("getGroupsEpochRewardsFromTotalVotes");
+    
+    const tokens = [
+        LockedCGLD_inst._address,
+        LockedCUSD_inst._address,
+        LockedCEUR_inst._address
+    ];
+    let results = await Promise.all(tokens.map(
+        a => Election_inst.methods.getGroupsEpochRewardsFromTotalVotes(a, Web3.utils.toWei("1"), false).call()
+    ))
+    const groups = results.map(r => r[0]);
+    const groupsEpochRewards = results.map(r => r[2]);
+    const epochRewards = results.map(r => r[3]);
+    console.log({tokens, groups, groupsEpochRewards, epochRewards});
+
     console.log("distributing");
-    await sendTx(account, await Election_inst.methods.distributeEpochRewards(Web3.utils.toWei("1")));
+    await sendTx(account, await Election_inst.methods.distributeEpochRewards(
+        tokens, groups, groupsEpochRewards, epochRewards
+    ));
 
     // console.log(Web3.utils.fromWei(
     //     await Election_inst.methods.getEpochTokenRewards(

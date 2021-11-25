@@ -6,10 +6,14 @@ interface IElection {
   function revokeActive(address, address, uint256, address, address, uint256) external returns (bool);
   function revokeAllActive(address, address, address, address, uint256) external returns (bool);
   function revokePending(address, address, uint256, address, address, uint256) external returns (bool);
-  function distributeEpochRewards(uint256) external;
+   function distributeEpochRewards(
+    address[] memory,
+    address[][] memory,
+    uint256[][] memory,
+    uint256[] memory
+  ) external;
 
   // view functions
-  function getSwapAddress() external view returns (address);
   function getTotalVotes(address) external view returns (uint256);
   function getActiveVotes(address) external view returns (uint256);
   function getTotalVotesByAccount(address, address) external view returns (uint256);
@@ -20,9 +24,23 @@ interface IElection {
   function getTotalVotesForGroup(address, address) external view returns (uint256);
   function getActiveVotesForGroup(address, address) external view returns (uint256);
   function getPendingVotesForGroup(address, address) external view returns (uint256);
+  
+  function getGroupsTotalVotesNormalised(address) external view returns (address[] memory, uint256[] memory, uint256[] memory);
+  function getGroupsActiveVotesNormalised(address) external view returns (address[] memory, uint256[] memory, uint256[] memory);
+  function getGroupTotalVotesNormalised(address, address) external view returns (uint256, uint256);
+  function getGroupActiveVotesNormalised(address, address) external view returns (uint256, uint256);
+  function getGroupsInfluenceFromTotalVotes() external view returns (address[] memory, uint256[] memory);
+  function getGroupsInfluenceFromActiveVotes() external view returns (address[] memory, uint256[] memory);
+  function getGroupInfluenceFromTotalVotes(address) external view returns (uint256);
+  function getGroupInfluenceFromActiveVotes(address) external view returns (uint256);
+
+  function getGroupsEpochRewardsFromTotalVotes(address, uint256, bool)
+    external view returns (address[] memory, uint256[] memory, uint256[] memory, uint256);
+  function getGroupsEpochRewardsFromActiveVotes(address, uint256, bool)
+    external view returns (address[] memory, uint256[] memory, uint256[] memory, uint256);
+
   function getGroupEligibility(address, address) external view returns (bool);
-  function getEpochTokenRewards(address, uint256) external view returns (uint256);
-  function getGroupEpochTokenRewards(address, address, uint256) external view returns (uint256);
+  function getEpochRewards(address, uint256, bool) external view returns (uint256);
   function getGroupsVotedForByAccount(address, address) external view returns (address[] memory);
   function getEligibleValidatorGroups(address) external view returns (address[] memory);
   function getTotalVotesForEligibleValidatorGroups(address)

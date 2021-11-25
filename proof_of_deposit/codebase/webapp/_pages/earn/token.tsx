@@ -1,7 +1,5 @@
 import { useContractKit } from '@celo-tools/use-contractkit';
-import { GroupVote } from '@celo/contractkit/lib/wrappers/Election';
 import { Address, eqAddress } from '@celo/base';
-import { AddressUtils } from '@celo/utils';
 import { BigNumber } from 'bignumber.js';
 import { useCallback, useEffect, useState } from 'react';
 import useStateRef from 'react-usestateref';
@@ -22,9 +20,9 @@ import {
   toast,
   TokenInput,
 } from '../../components';
-import { tokens, LockedERC20 } from '../../constants';
+import { tokens } from '../../constants';
 import { Base } from '../../state';
-import { formatAmount, truncate, truncateAddress, Election } from '../../utils';
+import { formatAmount, truncate, truncateAddress, ProofOfDeposit, VotesForGroupData, GroupData } from '../../utils';
 
 
 enum States {
@@ -48,38 +46,23 @@ export function EarnToken() {
   const {
     accountSummary,
     accountSummaryRef,
-    fetchBalances,
     balances,
     track,
   } = Base.useContainer();
 
-  const [groupVotes, setGroupVotes] = useState<GroupVote[]>([]);
-  const [hasActivatablePendingVotes, setHasActivatablePendingVotes] = useState(
-    false
-  );
   const [state, setState] = useState(States.None);
+  const [hasActivatablePendingVotes, setHasActivatablePendingVotes] = useState(false);
+  const [groupVotes, setGroupVotes] = useState<VotesForGroupData[]>([]);
+  const [groups, setGroups] = useState<GroupData[]>([]);
 
-  const [groups, setGroups] = useState<
-    ({
-      name: string;
-      address: Address;
-      votes: BigNumber;
-      voting_pct: BigNumber;
-      active: BigNumber;
-      pending: BigNumber;
-    })[]
-  >([]);
   const [voteAmount, setVoteAmount] = useState('');
   const [votingName, setVotingName] = useState('');
   const [votingAddress, setVotingAddress] = useState('');
 
-  const [totalVotes, setTotalVotes] = useState(new BigNumber(0));
-  const [loading, setLoading, loadingRef] = useStateRef(false);
+  const [, setLoading, loadingRef] = useStateRef(false);
   const [adding, setAdding] = useState(false);
 
   const [sort, setSort] = useState({ property: 'score', desc: true });
-
-  const tokenAddress = LockedERC20[token.ticker].address;
 
   const sortFn = useCallback(
     (a, b) => {
@@ -99,14 +82,13 @@ export function EarnToken() {
     setState(States.Activating);
     try {
       await performActions(async (k) => {
-        const election = new Election(k, tokenAddress, address);
-        await election.activate();
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.activate();
       });
       toast.success('Votes activated');
     } catch (e) {
       toast.error(`Unable to activate votes ${e.message}`);
     }
-    fetchVotingSummary();
     setState(States.None);
   };
 
@@ -125,8 +107,8 @@ export function EarnToken() {
     setState(States.Voting);
     try {
       await performActions(async (k) => {
-        const election = new Election(k, tokenAddress, address);
-        await election.vote(
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.vote(
           votingAddress,
           new BigNumber(Web3.utils.toWei(voteAmount))
         );
@@ -140,8 +122,6 @@ export function EarnToken() {
       toast.error(`Unable to vote ${e.message}`);
     } finally {
       setState(States.None);
-      fetchVotingSummary();
-      fetchBalances();
     }
   };
 
@@ -150,16 +130,14 @@ export function EarnToken() {
     setState(States.Revoking);
     try {
       await performActions(async (k) => {
-        const election = new Election(k, tokenAddress, address);
-        await election.revoke(groupAddress);
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.revoke(groupAddress);
       });
       toast.success('Votes revoked');
     } catch (e) {
       toast.error(`Unable to revoke votes ${e.message}`);
     } finally {
       setState(States.None);
-      fetchVotingSummary();
-      fetchBalances();
     }
   };
 
@@ -169,39 +147,18 @@ export function EarnToken() {
     }
     setLoading(true);
 
-    const address = accountSummaryRef.current.address;
-    const isNull = eqAddress(address, AddressUtils.NULL_ADDRESS)
-    const election = new Election(kit, tokenAddress, address);
-    const votedForGroups = isNull ? [] : await election.getGroupsVotedForByAccount();
-    const _groupVotes = await Promise.all(
-      votedForGroups.map((groupAddress) =>
-        election.getVotesForGroupByAccount(groupAddress)
-      )
-    );
-    const _totalVotes = await election.getTotalVotes();
-    const _totalVotesForGroups = await election.getTotalVotesForEligibleValidatorGroups();
-
-    setGroupVotes(_groupVotes);
-
-    setHasActivatablePendingVotes(
-      isNull ? false : await election.hasActivatablePendingVotes()
-    );
-
-    setTotalVotes(_totalVotes);
-    setGroups(_totalVotesForGroups.map(g =>{
-      const voting_pct = g.votes.dividedBy(_totalVotes).times(100);
-      const _group = _groupVotes.find((gv) => eqAddress(g.address, gv.group));
-      return {
-        ...g,
-        voting_pct,
-        pending: _group ? _group.pending : new BigNumber(0),
-        active: _group ? _group.active : new BigNumber(0),
-      }
-
-    }));
-
-    setLoading(false);
-    setTimeout(fetchVotingSummary, 1000);
+    try {
+      const pod = new ProofOfDeposit(kit, accountSummaryRef.current.address, token.ticker);   
+  
+      setGroupVotes(await pod.getVotesForGroupsData());
+      setHasActivatablePendingVotes(await pod.hasActivatablePendingVotes());
+      setGroups(await pod.getGroupsData());
+    } catch (e) {
+      toast.error(`Unable to fetch voting summary ${e.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(fetchVotingSummary, 1000);
+    }
   }, [kit, address, accountSummary]);
 
   useEffect(() => {
@@ -320,6 +277,9 @@ export function EarnToken() {
                 After voting for any group you must wait an epoch before activating your votes.
                 Please ensure you check back here to activate any votes and start earning rewards.
               </div>
+              <div className="text-gray-600 dark:text-gray-400 text-sm">
+                You can vote for a maximum of 2 different groups.
+              </div>
             </PanelDescription>
 
             {hasActivatablePendingVotes && (
@@ -333,7 +293,7 @@ export function EarnToken() {
             <div>
               <ul className="list-decimal list-inside">
                 {groupVotes.map((gv) => {
-                  const group = groups.find((g) => eqAddress(g.address, gv.group));
+                  const group = groups.find((g) => eqAddress(g.group, gv.group));
                   if (!group) {
                     return null;
                   }
@@ -344,24 +304,24 @@ export function EarnToken() {
                           {truncate(group.name, 30)}
                         </span>
                         <span className="text-gray-600 dark:text-gray-400 text-sm inline-flex space-x-1">
-                          <span>({truncateAddress(group.address)})</span>
-                          <CopyText text={gv.group} />
+                          <span>({truncateAddress(group.group)})</span>
+                          <CopyText text={group.group} />
                         </span>
                       </div>
 
                       <div className="relative flex flex-col mt-2">
                         <span className="inline-flex items-center rounded-md text-xs font-medium text-indigo-600">
-                          {formatAmount(gv.active)} ACTIVE (
-                          {gv.active.dividedBy(voting).times(100).toFixed(0)}
+                          {formatAmount(group.active)} ACTIVE (
+                          {group.active.dividedBy(voting).times(100).toFixed(0)}
                           )%
                         </span>
                         <span className="inline-flex items-center rounded-md text-xs font-medium text-blue-600 mt-1">
-                          {formatAmount(gv.pending)} PENDING (
-                          {gv.pending.dividedBy(voting).times(100).toFixed(0)}
+                          {formatAmount(group.pending)} PENDING (
+                          {group.pending.dividedBy(voting).times(100).toFixed(0)}
                           )%
                         </span>
                         <div className="absolute right-0 top-0">
-                          {gv.active && (
+                          {group.active && (
                             <>
                               {state === States.Revoking ? (
                                 <Loader
@@ -374,7 +334,7 @@ export function EarnToken() {
                                 <button
                                   className=" text-sm hover:text-gray-600 dark:text-gray-400"
                                   onClick={() =>
-                                    revoke(gv.group, gv.active.toString())
+                                    revoke(group.group, group.active.toString())
                                   }
                                 >
                                   Revoke
@@ -394,9 +354,9 @@ export function EarnToken() {
                   <div className="flex flex-col md:flex-row md:space-x-4 items-center">
                     <div className="hidden sm:flex w-full">
                       <CustomSelectSearch
-                        options={groups.map((vg) => ({
-                          value: vg.address,
-                          name: `${vg.name} (${truncateAddress(vg.address)})`,
+                        options={groups.map((g) => ({
+                          value: g.group,
+                          name: `${g.name} (${truncateAddress(g.group)})`,
                         }))}
                         placeholder="Choose a validator group"
                         value={votingAddress}
@@ -423,13 +383,13 @@ export function EarnToken() {
 
                         {groups.map((g) => (
                           <option
-                            data-address={g.address}
+                            data-address={g.group}
                             value={`${truncate(g.name, 20)} (${truncateAddress(
-                              g.address
+                              g.group
                             )})`}
                           >
                             {`${truncate(g.name, 20)} (${truncateAddress(
-                              g.address
+                              g.group
                             )})`}
                           </option>
                         ))}
@@ -482,13 +442,18 @@ export function EarnToken() {
               can be found here
             </a>.
           </p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
+            The further that a Group's Normalised Votes exceeds their Influence, the further that their APY decreases (for this particular token). 
+          </p>
         </div>
 
         <div className="-mx-5">
           <Table
             headers={[
               { displayName: 'Name', sortableProperty: 'name' },
-              { displayName: 'Influence', sortableProperty: 'voting_pct' },
+              { displayName: 'APY', sortableProperty: 'apy' },
+              { displayName: 'Influence', sortableProperty: 'influence' },
+              { displayName: 'Normalised Votes', sortableProperty: 'votes_normalised' },
               { displayName: 'Total Votes', sortableProperty: 'votes' },
               { displayName: 'Your Votes (Active)', sortableProperty: 'active' },
               { displayName: 'Your Votes (Pending)', sortableProperty: 'pending' },
@@ -499,27 +464,43 @@ export function EarnToken() {
             sort={sort}
             loading={false}
             noDataMessage="No validator groups found"
-            rows={groups.sort(sortFn).map((g) => [
-              <div>
-                {!g.name ? (
-                  <span className="italic">{truncateAddress(g.address)}</span>
-                ) : (
-                  truncate(g.name, 20)
-                )}
-              </div>,
-              <div className="text=gray-300">
-                {g.voting_pct.toFixed(0)} %
-              </div>,
-              <div className="text=gray-300">
-                {formatAmount(g.votes.toFixed(0))}
-              </div>,
-              <div>
-                {formatAmount(g.active.toFixed(0))}
-              </div>,
-              <div>
-                {formatAmount(g.pending.toFixed(0))}
-              </div>,
-            ])}
+            rows={groups.sort(sortFn).map(function (g) {
+              const col = g.influence.lt(g.votes_normalised) ? "red" : "green";
+              return [
+                <div>
+                  {!g.name ? (
+                    <span className="italic">{truncateAddress(g.group)}</span>
+                  ) : (
+                    truncate(g.name, 20)
+                  )}
+                </div>,
+                <div>
+                    <span className={`text-${col}-500 mr-1`}>
+                      {g.apy.toFixed(2)}
+                    </span>
+                    %
+                </div>,
+                <div>
+                  <span className={`text-${col}-500 mr-1`}>
+                    {formatAmount(g.influence)}
+                  </span>
+                </div>,
+                <div>
+                    <span className={`text-${col}-500 mr-1`}>
+                      {formatAmount(g.votes_normalised)}
+                    </span>
+                </div>,
+                <div>
+                  {formatAmount(g.votes)}
+                </div>,
+                <div>
+                  {formatAmount(g.active)}
+                </div>,
+                <div>
+                  {formatAmount(g.pending)}
+                </div>,
+            ]
+          })}
           />
         </div>
       </Panel>

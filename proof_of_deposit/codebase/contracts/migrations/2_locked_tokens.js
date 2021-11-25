@@ -31,7 +31,7 @@ module.exports = async function (deployer) {
     await deployer.deploy(
       Election, 
       [locked_cgld.address, locked_cusd.address, LockedCEUR.address], // token addresses
-      ["500", "250", "250"], // token weights
+      ["50", "25", "25"], // token weights. 
       [
         "0x000000000000000000000000000000000000000A",
         "0x000000000000000000000000000000000000000B",
@@ -41,14 +41,14 @@ module.exports = async function (deployer) {
       [
         [toWei("900"), toWei("1800"), toWei("2700"), toWei("3600")],
         [toWei("600"), toWei("1150"), toWei("280"), toWei("900")],
-        [toWei("40"), toWei("170"), toWei("130"), toWei("90")],
+        [toWei("400"), toWei("1700"), toWei("1300"), toWei("900")],
       ], // validator default votes
       [
         ["0", "1", "2", "3"],
         ["2", "0", "3", "1"],
         ["0", "3", "2", "1"],
       ], // ordering
-      3, // max votes
+      2, // max number groups to vote for
       "0xe3d8bd6aed4f159bc8000a9cd47cffdb95f96121", // SWAP ADDRESS
       CGLDAddress
     );

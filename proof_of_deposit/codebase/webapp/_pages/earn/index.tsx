@@ -12,13 +12,10 @@ import {
   Table,
   toast
 } from '../../components';
-import Web3 from 'web3';
-import { tokens, Celo, LockedERC20 } from '../../constants';
+import { tokens } from '../../constants';
 import { Base } from '../../state';
-import { formatAmount, Election, electionAddress } from '../../utils';
-import ERC20 from '../../utils/abis/ERC20.json';
+import { formatAmount, ProofOfDeposit, EpochRewardsData } from '../../utils';
 import { BigNumber } from 'bignumber.js';
-import { eqAddress } from '@celo/base';
 
 enum States {
   None,
@@ -32,48 +29,18 @@ export function Earn() {
     balances,
   } = Base.useContainer();
 
-  const { kit, network, performActions, address } = useContractKit();
+  const { kit, performActions, address } = useContractKit();
 
-  const [epochRewards, setEpochRewards] = useState(
-    tokens.reduce((prev, t) => {
-      return {
-        ...prev,
-        [t.ticker]: {
-          rewards: new BigNumber(0), 
-          apy: new BigNumber(0),
-          total_votes: new BigNumber(0)
-        }
-      };
-    }, {}
-  ));
-  const [loading, setLoading, loadingRef] = useStateRef(false);
+  const [epochRewards, setEpochRewards] = useState<EpochRewardsData[]>([]);
+  const [, setLoading, loadingRef] = useStateRef(false);
   const [state, setState] = useState(States.None);
 
   const distribute = async () => {
     setState(States.Distributing);
     try {
       await performActions(async (k) => {   
-        const cgld = new k.web3.eth.Contract(
-          ERC20 as any,
-          Celo.networks[network.name]
-        );       
-
-        const allowance = new BigNumber(Web3.utils.toWei("1000"));
-        const min_allowance = new BigNumber(Web3.utils.toWei("1"));
-        await k.sendTransactionObject(
-          await cgld.methods.approve(electionAddress, allowance),
-          { from: address }
-        );          
-
-        while(true){
-          if(min_allowance.lte(await cgld.methods.allowance(address, electionAddress).call())) {
-            break;
-          }
-          await new Promise(r => setTimeout(r, 1000));
-        }
-
-        const election = new Election(k, "0x0", address);
-        await election.distributeEpochRewards(new BigNumber(Web3.utils.toWei("1")));
+        const pod = new ProofOfDeposit(k, address);
+        await pod.distributeEpochRewards();
       });
       toast.success('Rewards distributed');
     } catch (e) {
@@ -88,36 +55,15 @@ export function Earn() {
       return;
     }
     setLoading(true);
-
-    const address = accountSummaryRef.current.address;
-    const rewards = await Promise.all(
-      tokens.map(async (t) => {
-        const election = new Election(kit, LockedERC20[t.ticker].address, address);
-        return election.getEpochTokenRewards(new BigNumber(Web3.utils.toWei("1")));
-      })
-    );
-    const total_votes = await Promise.all(
-      tokens.map(async (t) => {
-        const election = new Election(kit, LockedERC20[t.ticker].address, address);
-        return election.getTotalVotes();
-      })
-    );
-    const epochs_per_year = new BigNumber("365");
-
-    const _epochRewards = tokens.reduce((prev, t, i) => {
-        return {
-          ...prev,
-          [t.ticker]: {
-            rewards: rewards[i],
-            apy: epochs_per_year.times(rewards[i]).div(total_votes[i]).times(100),
-            total_votes: total_votes[i]
-          }
-        };
-      }, {}
-    );
-
-    setEpochRewards(_epochRewards);
-    setTimeout(fetchEpochRewards, 1000);
+    try {
+      const pod = new ProofOfDeposit(kit, accountSummaryRef.current.address);
+      setEpochRewards(await pod.getEpochRewardsData());
+    } catch (e) {
+      toast.error(`Unable to fetch epoch rewards ${e.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(fetchEpochRewards, 1000);
+    }
   }, [kit, address, accountSummary]);
 
   useEffect(() => {
@@ -168,7 +114,7 @@ export function Earn() {
       <Panel>
         <PanelHeader>Lockable Tokens</PanelHeader>
         <PanelDescription>
-          The Market APY and Epoch Rewards for lockable tokens are calculated based on 1 CELO per epoch{' '}
+          The Average APY and Epoch Rewards for lockable tokens are calculated based on 1 CELO per epoch{' '}
           and 365 epochs per year with the rewards being divided amongst locked tokens in the following configurable{' '}
           proportion:
           <ul className="list-inside list-disc mb-1">
@@ -193,7 +139,7 @@ export function Earn() {
             headers={[
               '',
               'Ticker',
-              'Market APY',
+              'Average APY',
               'Epoch Rewards',
               'Total Votes',
               'Locked (Voting %)',
@@ -207,6 +153,9 @@ export function Earn() {
                 const voting_pct = total_locked.minus(balances[ticker].nonvoting_locked).dividedBy(total_locked).times(100);
                 const total_unlocking = balances[ticker].unlocking;
                 const withdrawable_pct = total_unlocking.dividedBy(total_unlocking).times(100);
+                const rewardData = epochRewards.find(d => d.ticker == ticker);
+                const zero = new BigNumber(0);
+
                 return [
                   <Link to={`/earn/${ticker}`}>
                     <span className="px-4 py-2 bg-gray-800 hover:bg-gray-900 dark:bg-gray-50 dark:hover:bg-gray-300 text-white dark:text-gray-800 transition  rounded">
@@ -226,17 +175,17 @@ export function Earn() {
                   </div>,
                   <div>
                     <span className="text-green-500 mr-1">
-                      {epochRewards[ticker].apy.toFixed(2)}
+                      {(rewardData ? rewardData.apy : zero).toFixed(2)}
                     </span>
                     %
                   </div>,
                   <div>
                     <span className="text-green-500 mr-1">
-                      {formatAmount(epochRewards[ticker].rewards)}
+                      {formatAmount(rewardData ? rewardData.epoch_rewards : zero)}
                     </span>
                   </div>,
                   <div className="font-semibold">
-                    {formatAmount(epochRewards[ticker].total_votes)}
+                    {formatAmount(rewardData ? rewardData.total_votes : zero)}
                   </div>,
                   <div className="font-semibold">
                     {formatAmount(total_locked)} ({voting_pct.isNaN() ? '0' : voting_pct.toFixed(0)} %)

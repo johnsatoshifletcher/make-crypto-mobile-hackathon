@@ -2,13 +2,13 @@ import { useContractKit } from '@celo-tools/use-contractkit';
 import { useState } from 'react';
 import Loader from 'react-loader-spinner';
 import { toast } from '../components';
-import { LockedERC20, Token } from '../constants';
+import { Token } from '../constants';
 import { Base } from '../state';
-import { formatAmount, toWei, truncateAddress } from '../utils';
+import { formatAmount, toWei, ProofOfDeposit } from '../utils';
 import { ensureAccount } from '../utils/ensure-account';
 import { TokenInput } from './input';
 import { Panel, PanelDescription, PanelGrid, PanelHeader } from './panel';
-import { Bold, Link } from './text';
+import { Bold } from './text';
 import ERC20 from '../utils/abis/ERC20.json';
 import BigNumber from 'bignumber.js';
 
@@ -28,7 +28,6 @@ export function LockToken({
 }) {
   const { network, address, performActions } = useContractKit();
   const {
-    lockedSummary,
     balances,
     track,
     fetchBalances,
@@ -37,9 +36,7 @@ export function LockToken({
   const [state, setState] = useState(States.None);
 
   const balance = balances[token.ticker];
-  const tokenAddress = token.networks[network.name];
-
-  const locked_erc20 = LockedERC20[token.ticker];
+  const tokenAddress = token.address;
 
   const lock = async () => {
     track('lock/lock', { amount: toWei(lockAmount) });
@@ -47,30 +44,10 @@ export function LockToken({
 
     try {
       await performActions(async (k) => {
-        const erc20 = new k.web3.eth.Contract(
-          ERC20 as any,
-          tokenAddress
-        );
-        let txObject;
-        const allowance = new BigNumber(toWei(lockAmount));
-        txObject = await erc20.methods.approve(locked_erc20.address, allowance);
-        await k.sendTransactionObject(txObject, { from: address });
-
-        while(true){
-          if(allowance.lte(await erc20.methods.allowance(address, locked_erc20.address).call())) {
-            break;
-          }
-          await new Promise(r => setTimeout(r, 1000));
-        }
-
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        txObject = await contract.methods.lock(toWei(lockAmount));
-        await k.sendTransactionObject(txObject, { from: address });
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.lock(lockAmount);
       });
-      await fetchBalances();
+
       toast.success(`${token.ticker} locked`);
       setLockAmount('');
     } catch (e) {
@@ -85,15 +62,10 @@ export function LockToken({
     setState(States.Unlocking);
     try {
       await performActions(async (k) => {
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        let txObject;
-        txObject = await contract.methods.unlock(toWei(lockAmount));
-        await k.sendTransactionObject(txObject, { from: address });
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.unlock(lockAmount);
       });
-      await fetchBalances();
+
       toast.success(`${token.ticker} unlocked`);
       setLockAmount('');
     } catch (e) {
@@ -108,22 +80,10 @@ export function LockToken({
     setState(States.Withdrawing);
     try {
       await performActions(async (k) => {
-        const contract = new k.web3.eth.Contract(
-            locked_erc20.contract.abi as any,
-            locked_erc20.address
-        );
-        
-        const currentTime = Math.round(new Date().getTime() / 1000);
-        const pendingWithdrawals = await contract.methods.getPendingWithdrawals(address).call();
-        for (let i = pendingWithdrawals[0].length - 1; i >= 0; i--) {
-          let time = new BigNumber(pendingWithdrawals[1][i]);
-          if (time.isLessThan(currentTime)) {
-            let txObject = await contract.methods.withdraw(i);
-            await k.sendTransactionObject(txObject, { from: address });
-          }
-        }
+        const pod = new ProofOfDeposit(k, address, token.ticker);
+        await pod.withdraw();
       });
-      await fetchBalances();
+
       toast.success(`${token.ticker} withdrawn`);
     } catch (e) {
       toast.error(e.message);
@@ -145,6 +105,9 @@ export function LockToken({
               <Bold>{formatAmount(balance.total_locked.minus(balance.nonvoting_locked))}</Bold> is voting, and{' '}
               <Bold>{formatAmount(balance.unlocking)}</Bold> unlocking out of which{' '}
               <Bold>{formatAmount(balance.withdrawable)}</Bold> is ready to withdraw.
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
+              Pending withdrawls become ready to withdraw after 10 seconds.
             </p>
           </PanelDescription>
           <div>

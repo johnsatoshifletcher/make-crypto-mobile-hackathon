@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import useStateRef from 'react-usestateref';
 import toast from 'react-hot-toast';
 import { createContainer } from 'unstated-next';
-import { FiatCurrency, tokens, LockedERC20 } from '../constants';
+import { FiatCurrency, tokens, locked_tokens } from '../constants';
 import ERC20 from '../utils/abis/ERC20.json';
 
 function getApolloClient(n: Network) {
@@ -108,9 +108,8 @@ function State() {
         const goldToken = await kit.contracts.getGoldToken();
         const erc20s = await Promise.all(
           tokens
-            .filter((t) => !!t.networks[network.name])
             .map(async (t) => {
-              const tokenAddress = t.networks[network.name];
+              const tokenAddress = t.address;
               let balance;
               // this is due to a bug where erc20.balanceOf on native asset
               // is way off.
@@ -125,8 +124,8 @@ function State() {
               }
               
               const locked_erc20 = new kit.web3.eth.Contract(
-                  LockedERC20[t.ticker].contract.abi as any,
-                  LockedERC20[t.ticker].address
+                  locked_tokens[t.ticker].contract.abi as any,
+                  locked_tokens[t.ticker].address
               );
 
               let total_locked = await locked_erc20.methods.getAccountTotalLockedToken(address).call();

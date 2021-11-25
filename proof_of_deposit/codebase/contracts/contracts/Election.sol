@@ -123,7 +123,7 @@ contract Election is IElection, ReentrancyGuard
   event EpochRewardsDistributedToVoters(address indexed token, address indexed group, uint256 value);
 
   /**
-   * @notice Sets initialized == true on implementation contracts
+   * @notice Proof-of-concept setup
    */
   constructor(address[] memory tokens, uint256[] memory weights, address[] memory groups, uint256[][] memory _votes, uint256[][] memory order, uint _maxNumGroupsVotedFor, address _swapAddress, address _cgldAddress) 
   {
@@ -135,27 +135,32 @@ contract Election is IElection, ReentrancyGuard
         lockable.valid[token] = true;
         lockable.instance[token] = ILockedToken(token);
         lockable.addresses.push(token);
-        lockable.weight[token] = weights[i];
-        lockable.total_weight = lockable.total_weight.add(weights[i]);
+        uint256 w = weights[i].mul(UNIT_PRECISION_FACTOR);
+        lockable.weight[token] = w;
+        lockable.total_weight = lockable.total_weight.add(w);
         
-        require(groups.length == _votes[i].length, "Votes 2nd dim should be same as groups");
-        require(groups.length == order[i].length, "Order 2nd dim should be same as groups");
-        for (uint256 j = 0; j < groups.length; j = j.add(1)) {
-            address group = groups[order[i][j]];
-            uint256 v = _votes[i][order[i][j]];
-            incrementActiveVotes(token, group, address(this), v);
-            if (j == 0) {
-                votes.total[token].eligible.insert(group, v, address(0), address(0));
-            }else{
-                votes.total[token].eligible.insert(group, v, groups[order[i][j.sub(1)]], address(0));
-            }
-        }
+        _initialiseGroups(token, groups, _votes[i], order[i]);
     }
     maxNumGroupsVotedFor = _maxNumGroupsVotedFor;
     swapAddress = _swapAddress;
     swap = IUniswapV2Router01(_swapAddress);
     cgldAddress = _cgldAddress;
     cgld = IERC20(_cgldAddress);
+  }
+
+  function _initialiseGroups(address token, address[] memory groups, uint256[] memory _votes, uint256[] memory order) private {
+      require(groups.length == _votes.length, "Votes 2nd dim should be same as groups");
+      require(groups.length == order.length, "Order 2nd dim should be same as groups");
+      for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+          address group = groups[order[i]];
+          uint256 v = _votes[order[i]];
+          incrementActiveVotes(token, group, address(this), v);
+          if (i == 0) {
+              votes.total[token].eligible.insert(group, v, address(0), address(0));
+          }else{
+              votes.total[token].eligible.insert(group, v, groups[order[i.sub(1)]], address(0));
+          }
+      }
   }
 
   /**
@@ -187,7 +192,7 @@ contract Election is IElection, ReentrancyGuard
       alreadyVotedForGroup = alreadyVotedForGroup || groups[i] == group;
     }
     if (!alreadyVotedForGroup) {
-      require(groups.length < maxNumGroupsVotedFor, "Voted for too many groups");
+      require(groups.length <= maxNumGroupsVotedFor, "Voted for too many groups");
       groups.push(group);
     }
 
@@ -407,13 +412,6 @@ contract Election is IElection, ReentrancyGuard
   }
 
   /**
-  * @notice Gets address of the Swap smart contract.
-  */
-  function getSwapAddress() external view returns (address) {
-    return swapAddress;
-  }
-
-  /**
    * @notice Returns the total number of votes cast by an account.
    * @param token The address of the locked token contract.
    * @param account The address of the account.
@@ -531,6 +529,146 @@ contract Election is IElection, ReentrancyGuard
   }
 
   /**
+   * @notice Returns the normalised total votes for all groups.
+   * @param token The address of the locked token contract.
+   * @return The normalised total votes for all groups.
+   */
+  function getGroupsTotalVotesNormalised(address token) public view returns (address[] memory, uint256[] memory, uint256[] memory) {
+    address[] memory groups = getEligibleValidatorGroups(token);
+    uint256[] memory v = new uint256[](groups.length);
+    uint256[] memory normalised_votes = new uint256[](groups.length);
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      (v[i], normalised_votes[i]) = getGroupTotalVotesNormalised(token, groups[i]);
+    }
+    return (groups, v, normalised_votes);
+  }
+
+  /**
+   * @notice Returns the normalised total votes made for `group`.
+   * @param token The address of the locked token contract.
+   * @param group The address of the `group`.
+   * @return The normalised total votes made for `group`.
+   */
+  function getGroupTotalVotesNormalised(address token, address group) public view returns (uint256, uint256) {
+    uint256 v = votes.pending[token].forGroup[group].total.add(votes.active[token].forGroup[group].total);
+    uint256 total_votes = votes.pending[token].total.add(votes.active[token].total);
+    uint256 normalised_votes = _normaliseWithPrecisionFactor(v, total_votes);
+    return (v, normalised_votes);
+  }
+  /**
+   * @notice Returns the normalised active votes for all groups.
+   * @param token The address of the locked token contract.
+   * @return The normalised active votes for all groups.
+   */
+  function getGroupsActiveVotesNormalised(address token) public view returns (address[] memory, uint256[] memory, uint256[] memory) {
+    address[] memory groups = getEligibleValidatorGroups(token);
+    uint256[] memory v = new uint256[](groups.length);
+    uint256[] memory normalised_votes = new uint256[](groups.length);
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      (v[i], normalised_votes[i]) = getGroupActiveVotesNormalised(token, groups[i]);
+    }
+    return (groups, v, normalised_votes);
+  }
+
+  /**
+   * @notice Returns the normalised active votes made for `group`.
+   * @param token The address of the locked token contract.
+   * @param group The address of the `group`.
+   * @return The normalised active votes made for `group`.
+   */
+  function getGroupActiveVotesNormalised(address token, address group) public view returns (uint256, uint256) {
+    uint256 v = votes.active[token].forGroup[group].total;
+    uint256 total_votes = votes.active[token].total;
+    uint256 normalised_votes = _normaliseWithPrecisionFactor(v, total_votes);
+    return (v, normalised_votes);
+  }
+
+  /**
+   * @notice Returns the influence for all groups from total votes.
+   * @return The influence for all groups from total votes.
+   */
+  function getGroupsInfluenceFromTotalVotes() public view returns (address[] memory, uint256[] memory) {
+    address[] memory groups = getEligibleValidatorGroups(lockable.addresses[0]);
+    uint256[] memory influence = new uint256[](groups.length);
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      influence[i] = getGroupInfluenceFromTotalVotes(groups[i]);
+    }
+    return (groups, influence);
+  }
+
+  /**
+   * @notice Returns the influence for `group` from total votes.
+   * @param group The address of the validator group.
+   * @return The influence for `group` from total votes.
+   */
+  function getGroupInfluenceFromTotalVotes(address group) public view returns (uint256) {
+    uint256[] memory normalised_votes = new uint256[](lockable.addresses.length);
+    for (uint256 i = 0; i < lockable.addresses.length; i = i.add(1)) {
+      (, normalised_votes[i]) = getGroupTotalVotesNormalised(
+        lockable.addresses[i],
+        group
+      );
+    }
+    return _calcInfluenceFromNormalisedVotes(normalised_votes);
+  }
+
+  /**
+   * @notice Returns the influence for all groups from active votes.
+   * @return The influence for all groups from active votes.
+   */
+  function getGroupsInfluenceFromActiveVotes() public view returns (address[] memory, uint256[] memory) {
+    address[] memory groups = getEligibleValidatorGroups(lockable.addresses[0]);
+    uint256[] memory influence = new uint256[](groups.length);
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      influence[i] = getGroupInfluenceFromActiveVotes(groups[i]);
+    }
+    return (groups, influence);
+  }
+
+  /**
+   * @notice Returns the influence for `group` from active votes.
+   * @param group The address of the validator group.
+   * @return The influence for `group` from active votes.
+   */
+  function getGroupInfluenceFromActiveVotes(address group) public view returns (uint256) {
+    uint256[] memory normalised_votes = new uint256[](lockable.addresses.length);
+    for (uint256 i = 0; i < lockable.addresses.length; i = i.add(1)) {
+      (, normalised_votes[i]) = getGroupActiveVotesNormalised(
+        lockable.addresses[i],
+        group
+      );
+    }
+    return _calcInfluenceFromNormalisedVotes(normalised_votes);
+  }
+
+  /**
+   * @notice Normalises and multiplies by precision factor
+   */
+  function _normaliseWithPrecisionFactor(uint256 subtotal, uint256 total) private view returns (uint256) {
+    FixidityLib.Fraction memory weight = FixidityLib.newFixedFraction(
+      subtotal,
+      total
+    );
+    return FixidityLib
+        .newFixed(UNIT_PRECISION_FACTOR)
+        .multiply(weight)
+        .fromFixed();
+  }
+
+  /**
+   * @notice Calculates unormalised influence from normalised votes
+   */
+  function _calcInfluenceFromNormalisedVotes(uint256[] memory normalised_votes) private view returns (uint256) {
+    uint256 min = ~uint256(0); // bitwise negation to get max value
+    for (uint256 i = 0; i < normalised_votes.length; i = i.add(1)) {
+      if (normalised_votes[i] < min) {
+        min = normalised_votes[i];
+      }
+    }
+    return min;
+  }
+
+  /**
    * @notice Returns whether or not a group is eligible to receive votes.
    * @param token The address of the locked token contract.
    * @return Whether or not a group is eligible to receive votes.
@@ -545,135 +683,170 @@ contract Election is IElection, ReentrancyGuard
    * @notice Returns the amount of token rewards that voters are due at the end of an epoch.
    * @param token The address of the locked token contract.
    * @param totalEpochRewards The total amount of CELO going to all voters.
+   * @param convertToToken Whether or not to convert rewards from CELO to token.
    * @return The amount of token rewards that voters are due at the end of an epoch.
    */
-  function getEpochTokenRewards(
+  function getEpochRewards(
     address token,
-    uint256 totalEpochRewards
+    uint256 totalEpochRewards,
+    bool convertToToken
   ) public view returns (uint256) {
     FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
       lockable.weight[token],
       lockable.total_weight
     );
-    uint256 amount = FixidityLib
+    uint256 epochRewards = FixidityLib
         .newFixed(totalEpochRewards)
         .multiply(tokenWeight)
         .fromFixed();
 
     address erc20Address = lockable.instance[token].getERC20Address();
-    if (erc20Address != cgldAddress){
+    if (erc20Address != cgldAddress && convertToToken){
         address[] memory paths = new address[](2);
         paths[0] = cgldAddress;
         paths[1] = erc20Address;
 
-        return swap.getAmountsOut(amount, paths)[1];
+        return swap.getAmountsOut(epochRewards, paths)[1];
     }else{
-        return amount;
+        return epochRewards;
     }
   }
 
   /**
-   * @notice Returns the amount of token rewards that voters for `group` are due at the end of an epoch.
+   * @notice Returns the amount of token rewards that each group are due from their total votes.
    * @param token The address of the locked token contract.
-   * @param group The group to calculate epoch rewards for.
    * @param totalEpochRewards The total amount of CELO going to all voters.
-   * @return The amount of token rewards that voters for `group` are due at the end of an epoch.
+   * @param convertToToken Whether or not to convert rewards from CELO to token.
    */
-  function getGroupEpochTokenRewards(
+  function getGroupsEpochRewardsFromTotalVotes(
     address token,
-    address group,
-    uint256 totalEpochRewards
-  ) external view returns (uint256) {
-    FixidityLib.Fraction memory votePortion = FixidityLib.newFixedFraction(
-      votes.active[token].forGroup[group].total,
-      votes.active[token].total
-    );
-    FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
-      lockable.weight[token],
-      lockable.total_weight
-    );
-    uint256 amount = FixidityLib
-        .newFixed(totalEpochRewards)
-        .multiply(votePortion)
-        .multiply(tokenWeight)
-        .fromFixed();
+    uint256 totalEpochRewards,
+    bool convertToToken
+  ) external view returns (address[] memory, uint256[] memory, uint256[] memory, uint256) {
+    address[] memory groups = getEligibleValidatorGroups(token);  
+    uint256[] memory groupsEpochRewards = new uint256[](groups.length);  
+    uint256[] memory influence = new uint256[](groups.length);
+    uint256 total_influence;
 
-    address erc20Address = lockable.instance[token].getERC20Address();
-    if (erc20Address != cgldAddress){
-        address[] memory paths = new address[](2);
-        paths[0] = cgldAddress;
-        paths[1] = erc20Address;
-
-        return swap.getAmountsOut(amount, paths)[0];
-    }else{
-        return amount;
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      influence[i] = getGroupInfluenceFromTotalVotes(groups[i]);
+      total_influence = total_influence.add(influence[i]);
     }
+
+    uint256 epochRewards = getEpochRewards(token, totalEpochRewards, convertToToken);
+    FixidityLib.Fraction memory _epochRewards = FixidityLib.newFixed(epochRewards);
+    for (uint256 i = 0; i < influence.length; i = i.add(1)) {
+      groupsEpochRewards[i] = FixidityLib.newFixedFraction(
+        influence[i],
+        total_influence
+      ).multiply(_epochRewards).fromFixed();
+    }
+
+    return (groups, influence, groupsEpochRewards, epochRewards);
   }
 
   /**
-   * @notice Distributes epoch rewards to voters and groups in the form of active votes.
-    * @param amount The amount of CELO to distribute as epoch rewards.
+   * @notice Returns the amount of token rewards that each group are due from their active votes.
+   * @param token The address of the locked token contract.
+   * @param totalEpochRewards The total amount of CELO going to all voters.
+   * @param convertToToken Whether or not to convert rewards from CELO to token.
    */
-  function distributeEpochRewards(uint256 amount) external
-  {      
-    // loop through each token and calculate the proportion to be distributed
-    for (uint256 i = 0; i < lockable.addresses.length; i = i.add(1)) {
-        address token = lockable.addresses[i];
+  function getGroupsEpochRewardsFromActiveVotes(
+    address token,
+    uint256 totalEpochRewards,
+    bool convertToToken
+  ) external view returns (address[] memory, uint256[] memory, uint256[] memory, uint256) {
+    address[] memory groups = getEligibleValidatorGroups(token);  
+    uint256[] memory groupsEpochRewards = new uint256[](groups.length);  
+    uint256[] memory influence = new uint256[](groups.length);
+    uint256 total_influence;
 
-        FixidityLib.Fraction memory tokenWeight = FixidityLib.newFixedFraction(
-            lockable.weight[token],
-            lockable.total_weight
-        );
-        uint256 tokenAmount = FixidityLib
-            .newFixed(amount)
-            .multiply(tokenWeight)
-            .fromFixed();
-            
-        _distributeEpochTokenRewards(token, tokenAmount);
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+      influence[i] = getGroupInfluenceFromActiveVotes(groups[i]);
+      total_influence = total_influence.add(influence[i]);
+    }
+
+    uint256 epochRewards = getEpochRewards(token, totalEpochRewards, convertToToken);
+    FixidityLib.Fraction memory _epochRewards = FixidityLib.newFixed(epochRewards);
+    for (uint256 i = 0; i < influence.length; i = i.add(1)) {
+      groupsEpochRewards[i] = FixidityLib.newFixedFraction(
+        influence[i],
+        total_influence
+      ).multiply(_epochRewards).fromFixed();
+    }
+
+    return (groups, influence, groupsEpochRewards, epochRewards);
+  }
+
+  /**
+   * @notice Distributes CELO epoch rewards to voters and groups in the form of active votes in their token.
+   * @param tokens The addresses of the locked token contracts.
+   * @param groups The groups to receive rewards (corresponding to locked token contract).
+   * @param groupsEpochRewards The amount of CELO to be received by each group (corresponding to locked token contract).
+   * @param epochRewards The amount of CELO to distribute as epoch rewards (corresponding to locked token contract).
+   */
+  function distributeEpochRewards(
+    address[] memory tokens,
+    address[][] memory groups,
+    uint256[][] memory groupsEpochRewards,
+    uint256[] memory epochRewards
+  ) external {
+    for (uint256 i = 0; i < tokens.length; i = i.add(1)) {
+      address token = tokens[i];     
+      uint256 epochReward = epochRewards[i];
+
+      require(epochReward <= cgld.allowance(msg.sender, address(this)), "insufficient allowance");
+      cgld.transferFrom(msg.sender, address(this), epochReward);
+
+      // convert from CELO to token if necessary
+      address erc20Address = lockable.instance[token].getERC20Address();
+      IERC20 erc20 = IERC20(erc20Address); 
+      if (erc20Address != cgldAddress)
+      {
+          address[] memory paths = new address[](2);
+          paths[0] = cgldAddress;
+          paths[1] = erc20Address;
+
+          cgld.approve(swapAddress, epochReward);
+          epochReward = swap.swapExactTokensForTokens(
+              epochReward,
+              1,
+              paths,
+              address(this),
+              block.timestamp.add(10000000)
+          )[1];
+      }
+      // move the amount to the locked smart contract
+      erc20.transfer(token, epochReward);
+
+      _distributeEpochTokenRewards(token, groups[i], groupsEpochRewards[i]);
     }
 
     epochNumber = epochNumber.add(1);
   }
 
   /**
-   * @notice Swaps epoch token rewards before distributing
+   * @notice Distributes epoch rewards amongst groups for a particular locked token contract.
    * @param token The address of the locked token contract.
-   * @param amount The amount of CELO to distribute to voters for the group.
+   * @param groups The groups to receive rewards.
+   * @param groupsEpochRewards The amount of token to be received by each group.
    */
-  function _distributeEpochTokenRewards(address token, uint256 amount) private {
-    address erc20Address = lockable.instance[token].getERC20Address();
-    IERC20 erc20 = IERC20(erc20Address);
-    
-    require(amount <= cgld.allowance(msg.sender, address(this)), "insufficient allowance");
-    cgld.transferFrom(msg.sender, address(this), amount); // move the amount to the locked smart contract
-    if (erc20Address != cgldAddress)
-    {
-        address[] memory paths = new address[](2);
-        paths[0] = cgldAddress;
-        paths[1] = erc20Address;
-
-        cgld.approve(swapAddress, amount);
-        amount = swap.swapExactTokensForTokens(
-            amount,
-            1,
-            paths,
-            address(this),
-            block.timestamp.add(10000000)
-        )[1];
-    }
-    erc20.transfer(token, amount); // move the amount to the locked smart contract
-    
+  function _distributeEpochTokenRewards(
+    address token, 
+    address[] memory groups, 
+    uint256[] memory groupsEpochRewards
+  ) private {
     // update groups voting power
-    address[] memory sortedGroups = votes.total[token].eligible.getKeys();
-
     address greater = address(0);
-    for (uint256 i = 0; i < sortedGroups.length; i = i.add(1)) {
-        address group = sortedGroups[i];
+    for (uint256 i = 0; i < groups.length; i = i.add(1)) {
+        address group = groups[i];
+        uint256 groupEpochReward = groupsEpochRewards[i];
 
-        if(i + 1 < sortedGroups.length){
-            _distributeEpochTokenRewardsToGroup(token, group, amount, sortedGroups[i.add(1)], greater);
+        // TODO should be checking whether groupEpochReward changes order..
+        if(i + 1 < groups.length){
+            _distributeEpochTokenRewardsToGroup(token, group, groupEpochReward, groups[i.add(1)], greater);
         }else{
-            _distributeEpochTokenRewardsToGroup(token, group, amount, address(0), greater);
+            _distributeEpochTokenRewardsToGroup(token, group, groupEpochReward, address(0), greater);
         }
 
         greater = group;
@@ -684,28 +857,25 @@ contract Election is IElection, ReentrancyGuard
    * @notice Distributes epoch token rewards to voters and groups in the form of active votes.
    * @param token The address of the locked token contract.
    * @param group The validator group whose vote total should be incremented.
-   * @param amount The amount of token to distribute to voters for the group.
+   * @param groupEpochReward The amount of token to distribute to voters for the group.
    * @param lesser The group receiving fewer votes than the group for which the vote was cast,
    *   or 0 if that group has the fewest votes of any validator group.
    * @param greater The group receiving more votes than the group for which the vote was cast,
    *   or 0 if that group has the most votes of any validator group.
    */
-  function _distributeEpochTokenRewardsToGroup(address token, address group, uint256 amount, address lesser, address greater) private {
-    FixidityLib.Fraction memory votePortion = FixidityLib.newFixedFraction(
-        votes.active[token].forGroup[group].total,
-        votes.active[token].total
-    );
-    uint256 reward = FixidityLib
-        .newFixed(amount)
-        .multiply(votePortion)
-        .fromFixed();
-
-    uint256 newVoteTotal = votes.total[token].eligible.getValue(group).add(reward);
+  function _distributeEpochTokenRewardsToGroup(
+    address token, 
+    address group, 
+    uint256 groupEpochReward, 
+    address lesser, 
+    address greater
+  ) private {
+    uint256 newVoteTotal = votes.total[token].eligible.getValue(group).add(groupEpochReward);
     votes.total[token].eligible.update(group, newVoteTotal, lesser, greater);
 
-    votes.active[token].forGroup[group].total = votes.active[token].forGroup[group].total.add(reward);
-    votes.active[token].total = votes.active[token].total.add(reward);
-    emit EpochRewardsDistributedToVoters(token, group, reward);
+    votes.active[token].forGroup[group].total = votes.active[token].forGroup[group].total.add(groupEpochReward);
+    votes.active[token].total = votes.active[token].total.add(groupEpochReward);
+    emit EpochRewardsDistributedToVoters(token, group, groupEpochReward);
   }
 
   /**
@@ -916,7 +1086,7 @@ contract Election is IElection, ReentrancyGuard
    * @param token The address of the locked token contract.
    * @return The list of validator groups eligible to elect validators.
    */
-  function getEligibleValidatorGroups(address token) external view returns (address[] memory) {
+  function getEligibleValidatorGroups(address token) public view returns (address[] memory) {
     return votes.total[token].eligible.getKeys();
   }
 

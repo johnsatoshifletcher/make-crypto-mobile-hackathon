@@ -1,3 +1,3 @@
 export * from './format-amount';
 export * from './truncate';
-export * from './election';
+export * from './proof-of-deposit';
