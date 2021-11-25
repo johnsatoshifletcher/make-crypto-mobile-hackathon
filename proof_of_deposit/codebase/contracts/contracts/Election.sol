@@ -192,7 +192,7 @@ contract Election is IElection, ReentrancyGuard
       alreadyVotedForGroup = alreadyVotedForGroup || groups[i] == group;
     }
     if (!alreadyVotedForGroup) {
-      require(groups.length <= maxNumGroupsVotedFor, "Voted for too many groups");
+      require(groups.length < maxNumGroupsVotedFor, "Voted for too many groups");
       groups.push(group);
     }
 

@@ -1,4 +1,4 @@
-# Cambridge Cryptgraphic's WebApp
+# Cambridge Cryptgraphic's Contracts
 
 ## Credits
 
@@ -6,10 +6,4 @@ This WebApp uses [plock.fi](https://github.com/AlexBHarley/plock.fi) as a framew
 
 ## Using the WebApp
 
-1. Install npm packages via `npm install`
-2. Run the WebApp locally `yarn run dev` (should start on http://localhost:3001)
-3. Generate a random address and private key (can use https://vanity-eth.tk/)
-4. Fund your address via (Celo's faucet)[https://celo.org/build/faucet]
-5. Connect your wallet
-![How to connect](connecting.png)
-6. Play around with the WebApp!
+[See instructions here](https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit/codebase/README.md)

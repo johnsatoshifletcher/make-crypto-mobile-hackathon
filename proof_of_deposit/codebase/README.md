@@ -1,21 +1,55 @@
 # Cambridge Cryptgraphic's Codebase
 
-We have developed the following:
+Want to play around with our project? Here are some options:
 
-1. contracts - solidity smart contracts that have been deployed on Alfajores testnet
-2. webapp - a WebApp to interact with deployed smart contracts
-3. marketcap_model - formal analysis of our tech written in latex, along with python simulation code 
+## 1. Give me a live version!
 
-## Credits
+Sure, just visit http://hackathon.cambridgecryptographic.com/
 
-This WebApp uses [plock.fi](https://github.com/AlexBHarley/plock.fi) as a framework.
+## 2. I want to deploy my own version
 
-## Using the WebApp
+Sure, we have a docker ready setup:
 
-1. Install npm packages via `npm install`
-2. Run the WebApp locally `yarn run dev` (should start on http://localhost:3001)
-3. Generate a random address and private key (can use https://vanity-eth.tk/)
-4. Fund your address via (Celo's faucet)[https://celo.org/build/faucet]
-5. Connect your wallet
-![How to connect](connecting.png)
-6. Play around with the WebApp!
+```
+docker build -t proof-of-deposit .
+docker run -p 80:3001 proof-of-deposit
+```
+
+Now just visit http://localhost/
+
+## 3. I want to do it from scratch!
+
+Wow, you sure are hardcore.
+
+1. Install `nodejs` ([instructions here](https://nodejs.org/en/download/)). We personally used v16.13.0
+
+2. Install `truffle` v5.4.0 (we encountered some deployment bugs on later versions)
+    ```
+    npm install -g truffle@5.4.0
+    ```
+
+3. Install modules to run our stuff
+    ```
+    cd contracts && npm install
+    cd ../webapp && npm install
+    ```
+
+4. Deploy smart contracts
+   ```
+   cd ../contracts && truffle migrate --network alfajores
+   ```
+
+5. Copy ABIs to WebApp
+    ```
+    cp build/contracts/Election.json ../webapp/utils/abis/
+    cp build/contracts/LockedCGLD.json ../webapp/utils/abis/
+    cp build/contracts/LockedCUSD.json ../webapp/utils/abis/
+    cp build/contracts/LockedCEUR.json ../webapp/utils/abis/
+    ```
+
+6. Start the WebApp! 
+    ```
+    cd webapp && yarn run dev
+    ```
+
+7. Play around on http://localhost:3001/!!

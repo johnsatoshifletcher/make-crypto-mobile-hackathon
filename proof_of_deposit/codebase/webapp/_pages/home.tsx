@@ -26,7 +26,7 @@ export function AboutOurTech() {
         <button
           className="ml-auto primary-button"
         >
-          <a href="http://files.cambridgecryptographic.com/whitepapers/risk_free_v0.4.pdf">
+          <a href="http://files.cambridgecryptographic.com/whitepapers/risk_free_v0.4.pdf" target="_blank">
             Read Our Whitepaper
           </a>
         </button>
@@ -68,7 +68,7 @@ export function AboutOurTech() {
         <button
           className="ml-auto primary-button"
         >
-          <a href="http://files.cambridgecryptographic.com/whitepapers/marketcap_model_v0.1.pdf">
+          <a href="http://files.cambridgecryptographic.com/whitepapers/marketcap_model_v0.1.pdf" target="_blank">
             Read Our Analysis
           </a>
         </button>
@@ -119,7 +119,7 @@ export function AboutOurTech() {
         <button
           className="ml-auto primary-button"
         >
-          <a href="http://files.cambridgecryptographic.com/whitepapers/configurable_discretion_v0.1.pdf">
+          <a href="http://files.cambridgecryptographic.com/whitepapers/configurable_discretion_v0.1.pdf" target="_blank">
             Read Our Summary
           </a>
         </button>

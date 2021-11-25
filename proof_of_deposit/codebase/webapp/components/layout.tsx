@@ -3,6 +3,7 @@ import {
   ContractKitProvider,
   Alfajores,
   useContractKit,
+  SupportedProviders
 } from '@celo-tools/use-contractkit';
 import Image from 'next/image';
 import { Link, useLocation, useHistory } from 'react-router-dom';
@@ -281,11 +282,11 @@ export function WithAppLayout({ children }) {
           <div className="relative h-16 flex justify-between">
             <div className="relative z-10 px-2 flex lg:px-0">
               <div className="flex-shrink-0 flex items-center">
-                <Link to="/">
+                <a href="https://www.cambridgecryptographic.com/" target="_blank">
                   <span className="inline-flex">
                     <Image src="/logo.png" height={'24px'} width={'24px'} />
                   </span>
-                </Link>
+                </a>
               </div>
             </div>
             <div className="flex items-center md:space-x-6">
@@ -366,7 +367,7 @@ export function WithAppLayout({ children }) {
           </div>
           <div className="flex items-center space-x-6">
             <a
-              href="https://github.com/yc5915/make-crypto-mobile-hackathon"
+              href="https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit"
               target="_blank"
               className="text-gray-600 dark:text-gray-400 hover:text-gray-500"
             >
