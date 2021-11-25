@@ -1060,7 +1060,8 @@ contract Election is IElection, ReentrancyGuard
    */
   function deleteElement(address[] storage list, address element, uint256 index) private {
     require(index < list.length && list[index] == element, "Bad index");
-    delete list[index];
+    list[index] = list[list.length - 1];
+    list.pop();
   }
 
   /**

@@ -233,7 +233,7 @@ export class ProofOfDeposit {
     // get data to pass to distributeEpochRewards. This will ultimately be done by the VM
     const lockedAddresses = tokens.map(t => locked_tokens[t.ticker].address);
     const epochRewardData = await Promise.all(lockedAddresses.map(
-        a => this.contract.methods.getGroupsEpochRewardsFromActiveVotes(a, totalEpochRewards, false).call()
+        a => this.contract.methods.getGroupsEpochRewardsFromActiveVotes(a, totalEpochRewards, true).call()
     ))
 
     // epochRewardData [groups, influence, groupsEpochRewards, epochRewards]

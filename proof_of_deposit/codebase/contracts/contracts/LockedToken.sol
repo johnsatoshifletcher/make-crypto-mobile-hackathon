@@ -265,6 +265,7 @@ abstract contract LockedToken is ILockedToken, ReentrancyGuard
     * @param index The index of the pending withdrawal to delete.
     */
     function deletePendingWithdrawal(PendingWithdrawal[] storage list, uint256 index) private {
-        delete list[index];
+        list[index] = list[list.length - 1];
+        list.pop();
     }
 }

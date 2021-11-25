@@ -76,7 +76,7 @@ export function Earn() {
       <Panel>
         <PanelHeader>Earn with Proof-of-Deposit</PanelHeader>
         <PanelDescription>
-          In Proof-of-Deposit, you can earn passive rewards on your CELO, cSUD and/or cEUR.
+          In Proof-of-Deposit, you can earn passive rewards on your CELO, cUSD and/or cEUR.
           To begin you need to first locked your tokens, then you're free to vote for
           validator groups of your choosing.
         </PanelDescription>
@@ -115,8 +115,7 @@ export function Earn() {
         <PanelHeader>Lockable Tokens</PanelHeader>
         <PanelDescription>
           The Average APY and Epoch Rewards for lockable tokens are calculated based on 1 CELO per epoch{' '}
-          and 365 epochs per year with the rewards being divided amongst locked tokens in the following configurable{' '}
-          proportion:
+          and 365 epochs per year with the rewards being divided amongst locked tokens in the following proportions:
           <ul className="list-inside list-disc mb-1">
             <li>
               CELO - 50%
