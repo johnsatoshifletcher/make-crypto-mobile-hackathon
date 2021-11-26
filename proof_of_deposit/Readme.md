@@ -22,7 +22,7 @@ Our project, using proprietary blockchain-agnostic tech developed at [Cambridge 
 
 > Leveraging block rewards to create a **"risk-free" rate** on stablecoins (e.g. cUSD and cEUR)
 
-<img src="assets/images/pod.png" alt="positive feedback loop" width="800"/>
+<img src="assets/pod.png" alt="positive feedback loop" width="800"/>
 
 It achieves this by allowing the "staking" of, not one, but multiple tokens! One of those tokens must be CELO whose value is strongly coupled to the network (to serve as strong Sybil-defence), but the rest can be stablecoins! When block rewards are distributed, it creates in-effect a **"risk-free" rate** on stablecoins. 
 
