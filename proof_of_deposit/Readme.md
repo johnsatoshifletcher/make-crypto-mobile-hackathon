@@ -8,7 +8,9 @@
 
 **Location:** United Kingdom (Cambridge)
 
-**Live WebApp (on Testnet):** http://hackathon.cambridgecryptographic.com/
+**Live WebApp (with smart contracts on Testnet):** http://hackathon.cambridgecryptographic.com/
+
+**Video Demonstration:** https://youtu.be/iUs65qZy7eg
 
 **Team Members:**
 - Ying Chan, lead developer
@@ -20,7 +22,7 @@ Our project, using proprietary blockchain-agnostic tech developed at [Cambridge 
 
 > Leveraging block rewards to create a **"risk-free" rate** on stablecoins (e.g. cUSD and cEUR)
 
-<img src="codebase/webapp/public/images/pod.png" alt="positive feedback loop" width="800"/>
+<img src="assets/images/pod.png" alt="positive feedback loop" width="800"/>
 
 It achieves this by allowing the "staking" of, not one, but multiple tokens! One of those tokens must be CELO whose value is strongly coupled to the network (to serve as strong Sybil-defence), but the rest can be stablecoins! When block rewards are distributed, it creates in-effect a **"risk-free" rate** on stablecoins. 
 
@@ -44,7 +46,7 @@ We call this **Proof-of-Deposit** rather than **Proof-of-Stake** as the value of
 
    ii. Demand for stablecoin increases (to deposit for the APY) -> CELO price increases (due to CELO being used as collateral for stablecoin mechanism)  
 
-    <img src="codebase/webapp/public/images/amplified.png" alt="positive feedback loop" width="500"/><br></br>
+    <img src="assets/amplified.png" alt="positive feedback loop" width="500"/><br></br>
 
 3. **A novel tool for Central Banks: monetary policy with configurable discretion**
 
@@ -129,9 +131,10 @@ Towards the goal of getting this live:
 
 # URLs
 1. [Live WebApp](http://hackathon.cambridgecryptographic.com/)
-2. [Our Whitepaper - A Market Determined Risk Free Rate](http://files.cambridgecryptographic.com/whitepapers/risk_free_v0.4.pdf)
-3. [Our Analysis - A MarketCap Model for Proof-of-Deposit](http://files.cambridgecryptographic.com/whitepapers/marketcap_model_v0.1.pdf)
-4. [Our Summary on CBDCs - Monetary Policy with Configurable Discretion](http://files.cambridgecryptographic.com/whitepapers/configurable_discretion_v0.1.pdf)
+2. [Video Demonstration](https://youtu.be/iUs65qZy7eg)
+3. [Our Whitepaper - A Market Determined Risk Free Rate](http://files.cambridgecryptographic.com/whitepapers/risk_free_v0.4.pdf)
+4. [Our Analysis - A MarketCap Model for Proof-of-Deposit](http://files.cambridgecryptographic.com/whitepapers/marketcap_model_v0.1.pdf)
+5. [Our Summary on CBDCs - Monetary Policy with Configurable Discretion](http://files.cambridgecryptographic.com/whitepapers/configurable_discretion_v0.1.pdf)
 
 # License
 This repository includes an [unlicensed](http://unlicense.org/) statement though you may want to [choose a different license](https://choosealicense.com/).
