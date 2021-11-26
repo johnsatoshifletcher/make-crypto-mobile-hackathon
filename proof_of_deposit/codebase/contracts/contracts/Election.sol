@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+// The modifications to this file are the object of the following patent applications: EP20275088.1, GB2016187.3, GB2016186.5.
+
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";

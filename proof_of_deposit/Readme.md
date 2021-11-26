@@ -136,5 +136,6 @@ Towards the goal of getting this live:
 4. [Our Analysis - A MarketCap Model for Proof-of-Deposit](http://files.cambridgecryptographic.com/whitepapers/marketcap_model_v0.1.pdf)
 5. [Our Summary on CBDCs - Monetary Policy with Configurable Discretion](http://files.cambridgecryptographic.com/whitepapers/configurable_discretion_v0.1.pdf)
 
-# License
-This repository includes an [unlicensed](http://unlicense.org/) statement though you may want to [choose a different license](https://choosealicense.com/).
+# Intellectual Property
+
+The modifications to [`Election.sol`](./codebase/contracts/Election.sol) and [`LockedToken.sol`](./codebase/contracts/LockedToken.sol) are the object of the following patent applications: EP20275088.1, GB2016187.3, GB2016186.5.
