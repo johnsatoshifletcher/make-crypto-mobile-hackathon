@@ -2,12 +2,10 @@ import { useContractKit } from '@celo-tools/use-contractkit';
 import { useState, useCallback, useEffect } from 'react';
 import useStateRef from 'react-usestateref';
 import { Link } from 'react-router-dom';
-import Loader from 'react-loader-spinner';
 import Image from 'next/image';
 import {
   Panel,
   PanelDescription,
-  PanelWithButton,
   PanelHeader,
   Table,
   toast
@@ -17,11 +15,6 @@ import { Base } from '../../state';
 import { formatAmount, ProofOfDeposit, EpochRewardsData } from '../../utils';
 import { BigNumber } from 'bignumber.js';
 
-enum States {
-  None,
-  Distributing
-}
-
 export function Earn() {
   const {
     accountSummary,
@@ -29,26 +22,10 @@ export function Earn() {
     balances,
   } = Base.useContainer();
 
-  const { kit, performActions, address } = useContractKit();
+  const { kit, address } = useContractKit();
 
   const [epochRewards, setEpochRewards] = useState<EpochRewardsData[]>([]);
   const [, setLoading, loadingRef] = useStateRef(false);
-  const [state, setState] = useState(States.None);
-
-  const distribute = async () => {
-    setState(States.Distributing);
-    try {
-      await performActions(async (k) => {   
-        const pod = new ProofOfDeposit(k, address);
-        await pod.distributeEpochRewards();
-      });
-      toast.success('Rewards distributed');
-    } catch (e) {
-      toast.error(`Unable to distribute rewards ${e.message}`);
-    } finally {
-      setState(States.None);
-    }
-  };
 
   const fetchEpochRewards = useCallback(async () => {
     if (loadingRef.current) {
@@ -199,28 +176,6 @@ export function Earn() {
         </div>
       </Panel>
 
-      <PanelWithButton>
-        <div>
-          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">
-            Simulate Epoch Rewards
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
-            By pressing the button, your wallet will transfer 1 CELO to the election smart contract,{' '}
-            whereupon it will be divided amongst lockable tokens as a simulated epoch reward.
-          </p>
-        </div>
-
-        <button
-          className="ml-auto primary-button"
-          onClick={distribute}
-        >
-          {state === States.Distributing ? (
-            <Loader type="TailSpin" height={20} width={20} />
-          ) : (
-            'Distribute 1 CELO'
-          )}          
-        </button>
-      </PanelWithButton>
     </>
   );
 }

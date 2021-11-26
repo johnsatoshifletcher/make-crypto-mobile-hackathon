@@ -12,6 +12,7 @@ import { Base } from '../state';
 import { truncateAddress } from '../utils';
 import { DropButton } from './dropdown';
 import { PulsatingDot } from './pulsating-dot';
+import { SimulateEpochRewards } from './simulate-epoch';
 import { TestNetNotice } from './testnet';
 
 interface SidebarOption {
@@ -58,6 +59,7 @@ export function Sidebar({ items }: { items: SidebarOption[] }) {
             </span>
           </Link>
         ))}
+        <SimulateEpochRewards/>
       </nav>
     </aside>
   );
