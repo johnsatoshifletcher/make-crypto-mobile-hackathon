@@ -2,8 +2,8 @@
 
 ## Credits
 
-This WebApp uses [plock.fi](https://github.com/AlexBHarley/plock.fi) as a framework.
+This WebApp uses [plock.fi](https://github.com/AlexBHarley/plock.fi) as a SDK of sorts.
 
-## Using the WebApp
+## Running the WebApp
 
 [See instructions here](https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit/codebase/README.md)

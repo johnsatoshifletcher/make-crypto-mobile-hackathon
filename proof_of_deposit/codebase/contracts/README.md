@@ -1,9 +1,5 @@
 # Cambridge Cryptgraphic's Contracts
 
-## Credits
+[See here for instructions to deploy contracts](https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit/codebase/README.md)
 
-This WebApp uses [plock.fi](https://github.com/AlexBHarley/plock.fi) as a framework.
-
-## Using the WebApp
-
-[See instructions here](https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit/codebase/README.md)
+[See here for overview on what we have done](https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit/README.md)

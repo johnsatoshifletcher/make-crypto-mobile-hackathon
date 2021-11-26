@@ -367,7 +367,7 @@ export function WithAppLayout({ children }) {
           </div>
           <div className="flex items-center space-x-6">
             <a
-              href="https://github.com/yc5915/make-crypto-mobile-hackathon/tree/master/proof_of_deposit"
+              href="https://github.com/yc5915/make-crypto-mobile-hackathon/tree/Proof-of-Deposit"
               target="_blank"
               className="text-gray-600 dark:text-gray-400 hover:text-gray-500"
             >

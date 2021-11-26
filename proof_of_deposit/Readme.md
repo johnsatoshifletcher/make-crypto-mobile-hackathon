@@ -18,7 +18,7 @@
 # What is Proof-of-Deposit?
 Our project, using proprietary blockchain-agnostic tech developed at [Cambridge Cryptographic](https://www.cambridgecryptographic.com/), has a simple but profound aim:
 
-> Leveraging block rewards to replicate a **"risk-free" rate** on stablecoins (e.g. cUSD and cEUR)
+> Leveraging block rewards to create a **"risk-free" rate** on stablecoins (e.g. cUSD and cEUR)
 
 <img src="codebase/webapp/public/images/pod.png" alt="positive feedback loop" width="800"/>
 
@@ -28,11 +28,17 @@ We call this **Proof-of-Deposit** rather than **Proof-of-Stake** as the value of
 
 ## Benefits of Proof-of-Deposit
 
-**Proof-of-Deposit** brings 2 significant benefits that complements Celo's philosophy of providing accessible, mobile-first payments in a token that maintains stable purchasing power:
+**Proof-of-Deposit** brings significant benefits that complements Celo's philosophy of providing accessible, mobile-first payments in a token that maintains stable purchasing power:
 
-1. A **"risk-free" rate** on cUSD has strong potential to draw in the most important userbase that cannot or do not want take risk with their money: **regulated institutions and non-speculative everyday users.** When a substantial proportion of users holds cUSD, cEUR, etc for non-speculative use, it strengthens the stability. 
+1. **Tapping into the biggest and most important userbase: those that cannot or do not want take risk with their money such as regulated custodians/banks and non-speculative everyday people.**
 
-   Users will pick cUSD, cEUR over other stablecoins because the APY is market-determined (users will deposit if they deem APY to be attractive, and withdraw if it is too low), and creates a positive feedback loop between CELO and stablecoins: 
+    These users, by increasing the liquidity of the stablecoins, helps stablise the peg as the liquidity serves as a buffer against sell-offs by the speculative crowd. The reason that these users will hold cUSD, cEUR, etc is due to the APY offered by **Proof-of-Deposit** (users will deposit if they deem APY to be attractive, and withdraw if they deem it too low).  
+
+2. **Not like other DeFi: amplifying demand for CELO and stablecoins**
+
+   Unlike lending protocols, **Proof-of-Deposit** gives a **"risk-free" rate** where there is no risk of losing your principal. Unlike swap protocols, **Proof-of-Deposit** pays rewards from newly minted CELO (as opposed to a separate token) and from a transaction fees paid by the entire on-chain economy.
+
+   As users who deposit stablecoins earn a passive income paid in CELO, this creates a positive feedback loop: 
    
    i.  CELO price increase -> APY on stablecoin increases
 
@@ -40,9 +46,11 @@ We call this **Proof-of-Deposit** rather than **Proof-of-Stake** as the value of
 
     <img src="codebase/webapp/public/images/amplified.png" alt="positive feedback loop" width="500"/><br></br>
 
-2. Up until now, it has not been possible for a market to provide a risk-free rate. After all, if a borrower cannot take risks to generate profit with money we loan to them, why would they offer any interest in return? 
+3. **A novel tool for Central Banks: monetary policy with configurable discretion**
 
-    For the first time in history, **Proof-of-Deposit** not only allows a risk-free rate to be market-determined, but has the potential to support a Central Bank's counter-cyclical monetary policy. This is an additional tool that can allow Central Banks that issue their own sovereign currency, especially ones in small nations, to raise the credibility of their monetary policy!
+    Central Banks of smaller nations that issue their own sovereign currency are forced by the international sovereign bond market to offer unfeasibly high interest rates to compensate for the perceived risk of runaway inflation (lack of credible monetary policy). 
+    
+    The most important parameter that contributes to the credibility of monetary policy is how a Central Bank adjusts its risk-free rate. For the first time in history, **Proof-of-Deposit** not only allows a risk-free rate to be market-determined, but has the potential to credibly support a Central Bank's counter-cyclical monetary policy. 
 
     Ontop of mobile-first payments, this can further make Celo more attractive for Central Banks to adopt as a platform for their CBDCs.
 
