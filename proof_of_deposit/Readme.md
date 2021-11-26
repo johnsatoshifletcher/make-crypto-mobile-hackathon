@@ -18,19 +18,19 @@
 - Marcin Wojcik, developer
 
 # What is Proof-of-Deposit?
-Our project, using proprietary blockchain-agnostic tech developed at [Cambridge Cryptographic](https://www.cambridgecryptographic.com/), has a simple but profound aim:
+Our project, using proprietary blockchain-agnostic technology developed at [Cambridge Cryptographic](https://www.cambridgecryptographic.com/), has a simple but profound aim:
 
-> Leveraging block rewards to create a **"risk-free" rate** on stablecoins (e.g. cUSD and cEUR)
+> Leveraging block rewards to create a **"risk-free" interest rate** on stablecoins (e.g. cUSD and cEUR)
 
 <img src="assets/pod.png" alt="positive feedback loop" width="800"/>
 
-It achieves this by allowing the "staking" of, not one, but multiple tokens! One of those tokens must be CELO whose value is strongly coupled to the network (to serve as strong Sybil-defence), but the rest can be stablecoins! When block rewards are distributed, it creates in-effect a **"risk-free" rate** on stablecoins. 
+It achieves this by allowing the "staking" of, not one, but multiple tokens. One of those tokens must be CELO whose value is strongly coupled to the network (to serve as strong Sybil-defence), but the other tokens can be stablecoins. When block rewards are distributed, it creates in-effect a **"risk-free" interest rate** on stablecoins. 
 
-We call this **Proof-of-Deposit** rather than **Proof-of-Stake** as the value of "deposited" stablecoins are not "at stake" (i.e. validators may not be risking loss of purchasing power from their stablecoins if they act incorrectly)
+We call this scheme **Proof-of-Deposit** rather than **Proof-of-Stake** as the value of "deposited" stablecoins are not "at stake" (i.e. validators may not be risking loss of purchasing power from their stablecoins if they behave incorrectly)
 
 ## Benefits of Proof-of-Deposit
 
-**Proof-of-Deposit** brings significant benefits that complements Celo's philosophy of providing accessible, mobile-first payments in a token that maintains stable purchasing power:
+**Proof-of-Deposit** brings significant benefits that complement Celo's philosophy of providing accessible, mobile-first payments denominated in a token that maintains stable purchasing power:
 
 1. **Tapping into the biggest and most important userbase: those that cannot or do not want take risk with their money such as regulated custodians/banks and non-speculative everyday people.**
 
