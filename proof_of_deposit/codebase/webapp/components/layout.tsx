@@ -3,7 +3,6 @@ import {
   ContractKitProvider,
   Alfajores,
   useContractKit,
-  SupportedProviders
 } from '@celo-tools/use-contractkit';
 import Image from 'next/image';
 import { Link, useLocation, useHistory } from 'react-router-dom';
@@ -13,6 +12,7 @@ import { Base } from '../state';
 import { truncateAddress } from '../utils';
 import { DropButton } from './dropdown';
 import { PulsatingDot } from './pulsating-dot';
+import { TestNetNotice } from './testnet';
 
 interface SidebarOption {
   name: string;
@@ -407,7 +407,10 @@ function WithSidebar({ children }: any) {
     <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
       <Sidebar items={tabs} />
 
-      <div className="space-y-6 lg:px-0 lg:col-span-9">{children}</div>
+      <div className="space-y-6 lg:px-0 lg:col-span-9">        
+        <TestNetNotice/>
+        {children}
+      </div>
     </div>
   );
 }
@@ -416,7 +419,7 @@ export const WithLayout = ({ children }: any) => (
   <ContractKitProvider
     dappName="Proof-of-Deposit"
     dappDescription="Cambrideg Cryptographic's Hackathon Submission"
-    dappUrl="https://localhost:3001"
+    dappUrl="http://hackathon.cambridgecryptographic.com/"
     networks={[Alfajores]}
   >
     <Base.Provider>

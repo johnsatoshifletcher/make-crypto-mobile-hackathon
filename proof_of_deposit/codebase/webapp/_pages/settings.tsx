@@ -173,9 +173,9 @@ export function Settings() {
       <Panel>
         <PanelGrid>
           <div>
-            <PanelHeader>Plock</PanelHeader>
+            <PanelHeader>WebApp</PanelHeader>
             <PanelDescription>
-              Change behaviour of Plock to suit your usage better.
+              Change behaviour of WebApp to suit your usage better.
             </PanelDescription>
           </div>
           <div className="space-y-6">

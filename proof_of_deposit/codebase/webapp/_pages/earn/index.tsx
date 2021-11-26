@@ -73,19 +73,13 @@ export function Earn() {
 
   return (
     <>
-    <PanelWithButton>
-        <div>
-          <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-200">
-            Earn with Proof-of-Deposit
-          </h3>
+      <Panel>
+        <PanelHeader>Earn with Proof-of-Deposit</PanelHeader>
+        <PanelDescription>
           <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm">
             In Proof-of-Deposit, you can earn passive rewards on your CELO, cUSD and/or cEUR.
             To begin you need to first locked your tokens, then you're free to vote for
             validator groups of your choosing.
-          </p>
-          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm mt-2">
-            This is a proof of concept version deployed on Celo's Alfajores testnet. To get{' '}
-            started, you can generate a random private key and get some funds via the buttons below.
           </p>
           <div>
             <dl className="grid grid-cols-1 rounded-lg bg-white dark:bg-gray-700 overflow-hidden shadow divide-y divide-gray-200 md:grid-cols-3 md:divide-y-0 md:divide-x">
@@ -114,26 +108,9 @@ export function Earn() {
                 })}
             </dl>
           </div>
-        </div>
+        </PanelDescription>
+      </Panel>
         
-        <div>
-          <button
-            className="ml-auto primary-button"
-          >
-            <a href="https://celo.org/developers/faucet" target="_blank">
-              Fund your Account
-            </a>
-          </button>
-          {'    '}
-          <button
-            className="ml-auto primary-button"
-          >
-            <a href="https://vanity-eth.tk/" target="_blank">
-              Generate a Private Key
-            </a>
-          </button>
-        </div>
-      </PanelWithButton>
 
       <Panel>
         <PanelHeader>Lockable Tokens</PanelHeader>

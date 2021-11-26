@@ -16,6 +16,7 @@ import {
   PanelDescription,
   PanelGrid,
   PanelHeader,
+  PanelWithButton,
   Table,
   toast,
   TokenInput,
